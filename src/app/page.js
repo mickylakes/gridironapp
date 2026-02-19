@@ -9,6 +9,7 @@ import RankingsTab from "@/components/RankingsTab";
 import DraftBoard from "@/components/DraftBoard";
 import PlayerModal from "@/components/PlayerModal";
 import SettingsModal from "@/components/SettingsModal";
+import useWindowSize from "@/hooks/useWindowSize";
 
 export default function Home() {
   const [players, setPlayers]     = useState([]);
@@ -26,6 +27,7 @@ export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
   const [activeTab, setActiveTab]       = useState("rankings");
   const [scoring, setScoring] = useState("ppr");
+  const { isMobile, isTablet } = useWindowSize();
 
   // Draft state
   const [draftStarted, setDraftStarted] = useState(false);
@@ -138,25 +140,25 @@ export default function Home() {
       <div style={{maxWidth:1280,margin:"0 auto",padding:"32px 16px"}}>
 
         {/* Header */}
-        <div style={{textAlign:"center",marginBottom:32}}>
-          <div style={{display:"inline-flex",alignItems:"center",gap:12,marginBottom:8}}>
-            <TrendingUp size={40} color="#818cf8"/>
-            <h1 style={{fontSize:52,fontWeight:900,margin:0,background:"linear-gradient(90deg,#818cf8,#c084fc,#f472b6)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",letterSpacing:"-0.05em"}}>GRID IRON</h1>
-          </div>
-          <p style={{color:C.textSec,fontFamily:"monospace",fontSize:14,letterSpacing:"0.05em"}}>{new Date().getFullYear()} Fantasy Football Rankings</p>
-          <div style={{display:"flex",justifyContent:"center",gap:8,marginTop:8,flexWrap:"wrap"}}>
-            <span style={{display:"flex",alignItems:"center",gap:4,color:C.textSec,fontSize:13}}><Users size={14}/> {players.length} Players</span>
-            {favorites.size > 0 && <span style={{display:"flex",alignItems:"center",gap:4,color:"#fbbf24",fontSize:13}}><Star size={14} fill="#fbbf24"/> {favorites.size} Favorites</span>}
-          </div>
-          <div style={{display:"flex",justifyContent:"center",gap:8,marginTop:8,flexWrap:"wrap"}}>
-            {Object.entries(apiStatus).map(([src,st]) => (
-              <span key={src} style={{padding:"2px 10px",borderRadius:20,fontSize:12,fontFamily:"monospace",background:st.success?"rgba(16,185,129,0.15)":"rgba(239,68,68,0.15)",color:st.success?"#34d399":"#f87171",border:"1px solid "+(st.success?"rgba(16,185,129,0.3)":"rgba(239,68,68,0.3)")}}>
-                <Database size={10} style={{display:"inline",marginRight:4}}/>
-                {src.toUpperCase()}: {st.success ? st.count+" players" : st.error}
-              </span>
-            ))}
-          </div>
-        </div>
+<div style={{textAlign:"center",marginBottom:32}}>
+  <div style={{display:"inline-flex",alignItems:"center",gap:12,marginBottom:8}}>
+    <TrendingUp size={isMobile?24:40} color="#818cf8"/>
+    <h1 style={{fontSize:isMobile?32:52,fontWeight:900,margin:0,background:"linear-gradient(90deg,#818cf8,#c084fc,#f472b6)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",letterSpacing:"-0.05em"}}>GRID IRON</h1>
+  </div>
+  <p style={{color:C.textSec,fontFamily:"monospace",fontSize:isMobile?11:14,letterSpacing:"0.05em"}}>{new Date().getFullYear()} Fantasy Football Rankings</p>
+  <div style={{display:"flex",justifyContent:"center",gap:8,marginTop:8,flexWrap:"wrap"}}>
+    <span style={{display:"flex",alignItems:"center",gap:4,color:C.textSec,fontSize:13}}><Users size={14}/> {players.length} Players</span>
+    {favorites.size > 0 && <span style={{display:"flex",alignItems:"center",gap:4,color:"#fbbf24",fontSize:13}}><Star size={14} fill="#fbbf24"/> {favorites.size} Favorites</span>}
+  </div>
+  <div style={{display:"flex",justifyContent:"center",gap:8,marginTop:8,flexWrap:"wrap"}}>
+    {Object.entries(apiStatus).map(([src,st]) => (
+      <span key={src} style={{padding:"2px 10px",borderRadius:20,fontSize:12,fontFamily:"monospace",background:st.success?"rgba(16,185,129,0.15)":"rgba(239,68,68,0.15)",color:st.success?"#34d399":"#f87171",border:"1px solid "+(st.success?"rgba(16,185,129,0.3)":"rgba(239,68,68,0.3)")}}>
+        <Database size={10} style={{display:"inline",marginRight:4}}/>
+        {src.toUpperCase()}: {st.success ? st.count+" players" : st.error}
+      </span>
+    ))}
+  </div>
+</div>
 
         {/* Scoring format selector */}
 <div style={{display:"flex",justifyContent:"center",marginBottom:16}}>
@@ -167,17 +169,17 @@ export default function Home() {
       {key:"std",   label:"Standard"},
     ].map(s => (
       <button key={s.key} onClick={() => {
-        setScoring(s.key);
-        setPlayers(prev => buildPlayers(prev.map(p => ({
-          player_id: p.id, first_name: p.name.split(" ")[0],
-          last_name: p.name.split(" ").slice(1).join(" "),
-          position: p.position, team: p.team, age: p.age,
-          number: p.number, years_exp: p.yearsExp, active: true
-        })), budget, s.key));
-      }}
-        style={tabBtn(scoring===s.key,"linear-gradient(135deg,#6366f1,#8b5cf6)",C)}>
-        {s.label}
-      </button>
+  setScoring(s.key);
+  setPlayers(prev => buildPlayers(prev.map(p => ({
+    player_id: p.id, first_name: p.name.split(" ")[0],
+    last_name: p.name.split(" ").slice(1).join(" "),
+    position: p.position, team: p.team, age: p.age,
+    number: p.number, years_exp: p.yearsExp, active: true
+  })), budget, s.key));
+}}
+  style={{...tabBtn(scoring===s.key,"linear-gradient(135deg,#6366f1,#8b5cf6)",C), padding:isMobile?"8px 12px":"10px 28px", fontSize:isMobile?11:13}}>
+  {s.label}
+</button>
     ))}
   </div>
 </div>

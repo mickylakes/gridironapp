@@ -1,6 +1,8 @@
+"use client";
 import { Search, Star, Zap, Clock, Download, Users } from "lucide-react";
 import { pc, ti } from "@/constants/theme";
 import { tabBtn, posBtn } from "@/utils/styleHelpers";
+import useWindowSize from "@/hooks/useWindowSize";
 
 const POSITIONS = ["ALL","QB","RB","WR","TE","K","DEF","DL","LB","DB"];
 
@@ -10,6 +12,8 @@ export default function RankingsTab({
   showFavs, setShowFavs, favorites, toggleFav,
   setSelPlayer, budget,
 }) {
+  const { isMobile } = useWindowSize();
+
   const filtered = players
     .filter(p => selPos === "ALL" || p.position === selPos)
     .filter(p => !showFavs || favorites.has(p.id))
@@ -28,6 +32,8 @@ export default function RankingsTab({
     a.download = "rankings.csv";
     a.click();
   }
+
+  const cols = isMobile ? "40px 1fr 70px 80px" : "40px 1fr 70px 60px 80px 100px 80px 70px";
 
   return (
     <div>
@@ -58,7 +64,7 @@ export default function RankingsTab({
           onClick={() => setShowFavs(!showFavs)}
           style={{padding:"10px 18px",borderRadius:12,border:showFavs?"none":"1px solid "+C.border,cursor:"pointer",fontWeight:700,fontSize:13,display:"flex",alignItems:"center",gap:6,background:showFavs?"linear-gradient(135deg,#f59e0b,#d97706)":C.btnBg,color:showFavs?"#fff":C.textSec}}
         >
-          <Star size={14} fill={showFavs?"#fff":"none"}/> {showFavs?"SHOW ALL":"FAVORITES"}
+          <Star size={14} fill={showFavs?"#fff":"none"}/> {showFavs?"ALL":"FAVS"}
         </button>
       </div>
 
@@ -71,30 +77,30 @@ export default function RankingsTab({
 
       {/* Player table */}
       <div style={{background:C.cardBg,border:"1px solid "+C.border,borderRadius:16,overflow:"hidden",boxShadow:"0 8px 32px rgba(0,0,0,0.2)"}}>
-        {/* Table header */}
-        <div style={{display:"grid",gridTemplateColumns:"40px 1fr 70px 60px 80px 100px 80px 70px",gap:8,padding:"12px 20px",background:C.headerBg,borderBottom:"1px solid "+C.border,fontSize:11,fontFamily:"monospace",letterSpacing:"0.08em",color:C.textSec,textTransform:"uppercase"}}>
+
+        {/* Header */}
+        <div style={{display:"grid",gridTemplateColumns:cols,gap:8,padding:isMobile?"10px 12px":"12px 20px",background:C.headerBg,borderBottom:"1px solid "+C.border,fontSize:11,fontFamily:"monospace",letterSpacing:"0.08em",color:C.textSec,textTransform:"uppercase"}}>
           <div>★</div>
           <div>Player</div>
           <div style={{textAlign:"center"}}>Pos</div>
-          <div style={{textAlign:"center"}}>Team</div>
-          <div style={{textAlign:"center"}}>Age/Exp</div>
-          <div style={{textAlign:"center"}}>Proj Pts</div>
-          <div style={{textAlign:"center"}}>$ Value</div>
-          <div style={{textAlign:"center"}}>Tier</div>
+          {!isMobile && <div style={{textAlign:"center"}}>Team</div>}
+          {!isMobile && <div style={{textAlign:"center"}}>Age/Exp</div>}
+          <div style={{textAlign:"center"}}>Pts</div>
+          {!isMobile && <div style={{textAlign:"center"}}>$ Value</div>}
+          {!isMobile && <div style={{textAlign:"center"}}>Tier</div>}
         </div>
 
-        {/* Player rows */}
+        {/* Rows */}
         {filtered.map(player => {
           const pts  = rankType === "dynasty" ? player.dynastyPoints : player.redraftPoints;
           const aval = rankType === "dynasty" ? player.dynastyAuctionValue : player.auctionValue;
           const tier = ti(player.tier);
           const isFav = favorites.has(player.id);
-
           return (
             <div
               key={player.id}
               onClick={() => setSelPlayer(player)}
-              style={{display:"grid",gridTemplateColumns:"40px 1fr 70px 60px 80px 100px 80px 70px",gap:8,padding:"14px 20px",borderBottom:"1px solid "+C.border,cursor:"pointer"}}
+              style={{display:"grid",gridTemplateColumns:cols,gap:8,padding:isMobile?"10px 12px":"14px 20px",borderBottom:"1px solid "+C.border,cursor:"pointer"}}
               onMouseEnter={e => e.currentTarget.style.background=C.rowHover}
               onMouseLeave={e => e.currentTarget.style.background="transparent"}
             >
@@ -106,36 +112,45 @@ export default function RankingsTab({
               <div style={{display:"flex",alignItems:"center",gap:10}}>
                 <div style={{width:3,height:40,borderRadius:2,background:pc(player.position),flexShrink:0}}/>
                 <div>
-                  <div style={{fontWeight:700,fontSize:14}}>{player.name}</div>
-                  {player.number && <div style={{fontSize:11,fontFamily:"monospace",color:C.textSec}}>#{player.number}</div>}
+                  <div style={{fontWeight:700,fontSize:isMobile?12:14}}>{player.name}</div>
+                  {isMobile
+                    ? <div style={{fontSize:10,fontFamily:"monospace",color:C.textSec}}>{player.team}</div>
+                    : player.number && <div style={{fontSize:11,fontFamily:"monospace",color:C.textSec}}>#{player.number}</div>
+                  }
                 </div>
               </div>
               <div style={{display:"flex",alignItems:"center",justifyContent:"center"}}>
                 <span style={{padding:"3px 8px",borderRadius:6,background:pc(player.position),color:"#fff",fontWeight:800,fontSize:11}}>{player.position}</span>
               </div>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"monospace",fontSize:13,color:C.textSec}}>{player.team}</div>
+              {!isMobile && <div style={{display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"monospace",fontSize:13,color:C.textSec}}>{player.team}</div>}
+              {!isMobile && (
+                <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+                  <span style={{fontWeight:700,fontSize:13}}>{player.age}y</span>
+                  <span style={{fontFamily:"monospace",fontSize:11,color:C.textSec}}>{player.yearsExp} YOE</span>
+                </div>
+              )}
               <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
-                <span style={{fontWeight:700,fontSize:13}}>{player.age}y</span>
-                <span style={{fontFamily:"monospace",fontSize:11,color:C.textSec}}>{player.yearsExp} YOE</span>
-              </div>
-              <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
-                <span style={{fontWeight:900,fontSize:22,background:"linear-gradient(90deg,#34d399,#2dd4bf)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>{pts.toFixed(1)}</span>
+                <span style={{fontWeight:900,fontSize:isMobile?16:22,background:"linear-gradient(90deg,#34d399,#2dd4bf)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>{pts.toFixed(0)}</span>
                 <span style={{fontSize:10,fontFamily:"monospace",color:C.textSec}}>{rankType==="dynasty"?"DYN":"PPR"}</span>
               </div>
-              <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
-                <span style={{fontWeight:900,fontSize:18,background:"linear-gradient(90deg,#fbbf24,#f59e0b)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>${aval}</span>
-                <span style={{fontSize:10,fontFamily:"monospace",color:C.textSec}}>{((aval/budget)*100).toFixed(0)}%</span>
-              </div>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"center"}}>
-                <span style={{padding:"3px 10px",borderRadius:20,background:tier.bg,color:tier.col,fontWeight:700,fontSize:11}}>{tier.label}</span>
-              </div>
+              {!isMobile && (
+                <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+                  <span style={{fontWeight:900,fontSize:18,background:"linear-gradient(90deg,#fbbf24,#f59e0b)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>${aval}</span>
+                  <span style={{fontSize:10,fontFamily:"monospace",color:C.textSec}}>{((aval/budget)*100).toFixed(0)}%</span>
+                </div>
+              )}
+              {!isMobile && (
+                <div style={{display:"flex",alignItems:"center",justifyContent:"center"}}>
+                  <span style={{padding:"3px 10px",borderRadius:20,background:tier.bg,color:tier.col,fontWeight:700,fontSize:11}}>{tier.label}</span>
+                </div>
+              )}
             </div>
           );
         })}
       </div>
 
       {/* Footer */}
-      <div style={{marginTop:24,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+      <div style={{marginTop:24,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
         <span style={{fontSize:13,fontFamily:"monospace",color:C.textSec}}>
           <Users size={13} style={{display:"inline",marginRight:4}}/>
           Showing {filtered.length} of {players.length} players
