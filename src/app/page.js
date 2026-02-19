@@ -25,6 +25,7 @@ export default function Home() {
   const [numTeams, setNumTeams]   = useState(12);
   const [showSettings, setShowSettings] = useState(false);
   const [activeTab, setActiveTab]       = useState("rankings");
+  const [scoring, setScoring] = useState("ppr");
 
   // Draft state
   const [draftStarted, setDraftStarted] = useState(false);
@@ -103,7 +104,7 @@ export default function Home() {
         status.sample = {success:true, count:raw.length};
       }
       setApiStatus(status);
-      setPlayers(buildPlayers(raw, budget));
+      setPlayers(buildPlayers(raw, budget, scoring));
       setLoading(false);
     }
     load();
@@ -156,6 +157,30 @@ export default function Home() {
             ))}
           </div>
         </div>
+
+        {/* Scoring format selector */}
+<div style={{display:"flex",justifyContent:"center",marginBottom:16}}>
+  <div style={{display:"inline-flex",background:C.cardBg,border:"1px solid "+C.border,borderRadius:14,padding:4,gap:4}}>
+    {[
+      {key:"ppr",   label:"PPR"},
+      {key:"half",  label:"Half PPR"},
+      {key:"std",   label:"Standard"},
+    ].map(s => (
+      <button key={s.key} onClick={() => {
+        setScoring(s.key);
+        setPlayers(prev => buildPlayers(prev.map(p => ({
+          player_id: p.id, first_name: p.name.split(" ")[0],
+          last_name: p.name.split(" ").slice(1).join(" "),
+          position: p.position, team: p.team, age: p.age,
+          number: p.number, years_exp: p.yearsExp, active: true
+        })), budget, s.key));
+      }}
+        style={tabBtn(scoring===s.key,"linear-gradient(135deg,#6366f1,#8b5cf6)",C)}>
+        {s.label}
+      </button>
+    ))}
+  </div>
+</div>
 
         {/* Tab bar */}
         <div style={{display:"flex",justifyContent:"center",marginBottom:32}}>
