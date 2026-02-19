@@ -1,0 +1,149 @@
+import { Search, Star, Zap, Clock, Download, Users } from "lucide-react";
+import { pc, ti } from "@/constants/theme";
+import { tabBtn, posBtn } from "@/utils/styleHelpers";
+
+const POSITIONS = ["ALL","QB","RB","WR","TE","K","DEF","DL","LB","DB"];
+
+export default function RankingsTab({
+  C, players, rankType, setRankType,
+  selPos, setSelPos, search, setSearch,
+  showFavs, setShowFavs, favorites, toggleFav,
+  setSelPlayer, budget,
+}) {
+  const filtered = players
+    .filter(p => selPos === "ALL" || p.position === selPos)
+    .filter(p => !showFavs || favorites.has(p.id))
+    .filter(p => p.name.toLowerCase().includes(search.toLowerCase()) || p.team.toLowerCase().includes(search.toLowerCase()))
+    .sort((a,b) => rankType === "dynasty" ? b.dynastyPoints - a.dynastyPoints : b.redraftPoints - a.redraftPoints)
+    .slice(0, 150);
+
+  function exportCSV() {
+    const rows = [["Rank","Player","Pos","Team","Age","Exp","Points","Tier"]];
+    filtered.forEach((p,i) => {
+      const pts = rankType === "dynasty" ? p.dynastyPoints : p.redraftPoints;
+      rows.push([i+1, p.name, p.position, p.team, p.age, p.yearsExp, pts.toFixed(1), ti(p.tier).label]);
+    });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([rows.map(r => r.join(",")).join("\n")], {type:"text/csv"}));
+    a.download = "rankings.csv";
+    a.click();
+  }
+
+  return (
+    <div>
+      {/* Redraft / Dynasty toggle */}
+      <div style={{display:"flex",justifyContent:"center",marginBottom:16}}>
+        <div style={{display:"inline-flex",background:C.cardBg,border:"1px solid "+C.border,borderRadius:14,padding:4}}>
+          <button onClick={() => setRankType("redraft")} style={tabBtn(rankType==="redraft","linear-gradient(135deg,#6366f1,#8b5cf6)",C)}>
+            <Zap size={14}/> REDRAFT
+          </button>
+          <button onClick={() => setRankType("dynasty")} style={tabBtn(rankType==="dynasty","linear-gradient(135deg,#6366f1,#8b5cf6)",C)}>
+            <Clock size={14}/> DYNASTY
+          </button>
+        </div>
+      </div>
+
+      {/* Search + favorites */}
+      <div style={{display:"flex",gap:8,maxWidth:600,margin:"0 auto 16px",width:"100%"}}>
+        <div style={{position:"relative",flex:1}}>
+          <Search size={16} style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",color:C.textSec}}/>
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search players or teams..."
+            style={{width:"100%",paddingLeft:40,paddingRight:12,paddingTop:10,paddingBottom:10,borderRadius:12,border:"1px solid "+C.border,background:C.inputBg,color:C.textPri,outline:"none",fontSize:14,boxSizing:"border-box"}}
+          />
+        </div>
+        <button
+          onClick={() => setShowFavs(!showFavs)}
+          style={{padding:"10px 18px",borderRadius:12,border:showFavs?"none":"1px solid "+C.border,cursor:"pointer",fontWeight:700,fontSize:13,display:"flex",alignItems:"center",gap:6,background:showFavs?"linear-gradient(135deg,#f59e0b,#d97706)":C.btnBg,color:showFavs?"#fff":C.textSec}}
+        >
+          <Star size={14} fill={showFavs?"#fff":"none"}/> {showFavs?"SHOW ALL":"FAVORITES"}
+        </button>
+      </div>
+
+      {/* Position filters */}
+      <div style={{display:"flex",flexWrap:"wrap",gap:6,justifyContent:"center",marginBottom:20}}>
+        {POSITIONS.map(pos => (
+          <button key={pos} onClick={() => setSelPos(pos)} style={posBtn(selPos===pos, pos, C)}>{pos}</button>
+        ))}
+      </div>
+
+      {/* Player table */}
+      <div style={{background:C.cardBg,border:"1px solid "+C.border,borderRadius:16,overflow:"hidden",boxShadow:"0 8px 32px rgba(0,0,0,0.2)"}}>
+        {/* Table header */}
+        <div style={{display:"grid",gridTemplateColumns:"40px 1fr 70px 60px 80px 100px 80px 70px",gap:8,padding:"12px 20px",background:C.headerBg,borderBottom:"1px solid "+C.border,fontSize:11,fontFamily:"monospace",letterSpacing:"0.08em",color:C.textSec,textTransform:"uppercase"}}>
+          <div>★</div>
+          <div>Player</div>
+          <div style={{textAlign:"center"}}>Pos</div>
+          <div style={{textAlign:"center"}}>Team</div>
+          <div style={{textAlign:"center"}}>Age/Exp</div>
+          <div style={{textAlign:"center"}}>Proj Pts</div>
+          <div style={{textAlign:"center"}}>$ Value</div>
+          <div style={{textAlign:"center"}}>Tier</div>
+        </div>
+
+        {/* Player rows */}
+        {filtered.map(player => {
+          const pts  = rankType === "dynasty" ? player.dynastyPoints : player.redraftPoints;
+          const aval = rankType === "dynasty" ? player.dynastyAuctionValue : player.auctionValue;
+          const tier = ti(player.tier);
+          const isFav = favorites.has(player.id);
+
+          return (
+            <div
+              key={player.id}
+              onClick={() => setSelPlayer(player)}
+              style={{display:"grid",gridTemplateColumns:"40px 1fr 70px 60px 80px 100px 80px 70px",gap:8,padding:"14px 20px",borderBottom:"1px solid "+C.border,cursor:"pointer"}}
+              onMouseEnter={e => e.currentTarget.style.background=C.rowHover}
+              onMouseLeave={e => e.currentTarget.style.background="transparent"}
+            >
+              <div style={{display:"flex",alignItems:"center"}}>
+                <button onClick={e => { e.stopPropagation(); toggleFav(player.id); }} style={{background:"none",border:"none",cursor:"pointer",padding:0}}>
+                  <Star size={18} color={isFav?"#fbbf24":C.dashCol} fill={isFav?"#fbbf24":"none"}/>
+                </button>
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <div style={{width:3,height:40,borderRadius:2,background:pc(player.position),flexShrink:0}}/>
+                <div>
+                  <div style={{fontWeight:700,fontSize:14}}>{player.name}</div>
+                  {player.number && <div style={{fontSize:11,fontFamily:"monospace",color:C.textSec}}>#{player.number}</div>}
+                </div>
+              </div>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"center"}}>
+                <span style={{padding:"3px 8px",borderRadius:6,background:pc(player.position),color:"#fff",fontWeight:800,fontSize:11}}>{player.position}</span>
+              </div>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"monospace",fontSize:13,color:C.textSec}}>{player.team}</div>
+              <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+                <span style={{fontWeight:700,fontSize:13}}>{player.age}y</span>
+                <span style={{fontFamily:"monospace",fontSize:11,color:C.textSec}}>{player.yearsExp} YOE</span>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+                <span style={{fontWeight:900,fontSize:22,background:"linear-gradient(90deg,#34d399,#2dd4bf)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>{pts.toFixed(1)}</span>
+                <span style={{fontSize:10,fontFamily:"monospace",color:C.textSec}}>{rankType==="dynasty"?"DYN":"PPR"}</span>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+                <span style={{fontWeight:900,fontSize:18,background:"linear-gradient(90deg,#fbbf24,#f59e0b)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>${aval}</span>
+                <span style={{fontSize:10,fontFamily:"monospace",color:C.textSec}}>{((aval/budget)*100).toFixed(0)}%</span>
+              </div>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"center"}}>
+                <span style={{padding:"3px 10px",borderRadius:20,background:tier.bg,color:tier.col,fontWeight:700,fontSize:11}}>{tier.label}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Footer */}
+      <div style={{marginTop:24,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <span style={{fontSize:13,fontFamily:"monospace",color:C.textSec}}>
+          <Users size={13} style={{display:"inline",marginRight:4}}/>
+          Showing {filtered.length} of {players.length} players
+        </span>
+        <button onClick={exportCSV} style={{padding:"10px 20px",borderRadius:12,border:"none",cursor:"pointer",background:"linear-gradient(135deg,#10b981,#0d9488)",color:"#fff",fontWeight:700,display:"flex",alignItems:"center",gap:6}}>
+          <Download size={15}/> Export CSV
+        </button>
+      </div>
+    </div>
+  );
+}
