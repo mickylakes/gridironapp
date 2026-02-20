@@ -26,7 +26,7 @@ export default function LandingPage() {
           <span style={{fontSize:22,fontWeight:900,background:"linear-gradient(90deg,#818cf8,#c084fc,#f472b6)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>GRID IRON</span>
         </div>
         <button
-          onClick={() => router.push("/app")}
+          onClick={() => router.push("/draft")}
           style={{padding:"10px 24px",borderRadius:12,border:"none",cursor:"pointer",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",fontWeight:700,fontSize:14,display:"flex",alignItems:"center",gap:6}}
         >
           Launch App <ChevronRight size={16}/>
@@ -47,13 +47,13 @@ export default function LandingPage() {
         </p>
         <div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap"}}>
           <button
-            onClick={() => router.push("/app")}
+            onClick={() => router.push("/draft")}
             style={{padding:"16px 36px",borderRadius:14,border:"none",cursor:"pointer",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",fontWeight:800,fontSize:16,display:"flex",alignItems:"center",gap:8,boxShadow:"0 8px 32px rgba(99,102,241,0.4)"}}
           >
             Start For Free <ChevronRight size={18}/>
           </button>
           <button
-            onClick={() => router.push("/app")}
+            onClick={() => router.push("/draft")}
             style={{padding:"16px 36px",borderRadius:14,border:"1px solid #1e293b",cursor:"pointer",background:"transparent",color:"#94a3b8",fontWeight:700,fontSize:16}}
           >
             View Rankings
@@ -101,7 +101,7 @@ export default function LandingPage() {
         <h2 style={{fontSize:"clamp(24px,4vw,40px)",fontWeight:900,margin:"0 0 16px"}}>Ready to Dominate Your League?</h2>
         <p style={{color:"#64748b",marginBottom:32,fontSize:16}}>No signup required. Jump straight into the rankings.</p>
         <button
-          onClick={() => router.push("/app")}
+          onClick={() => router.push("/draft")}
           style={{padding:"16px 48px",borderRadius:14,border:"none",cursor:"pointer",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",fontWeight:800,fontSize:18,boxShadow:"0 8px 32px rgba(99,102,241,0.4)"}}
         >
           Launch Grid Iron Free
