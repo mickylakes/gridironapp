@@ -176,5 +176,5 @@ export function buildPlayers(raw, budget, scoring = "ppr") {
       dynastyAuctionValue: dynastyAuctionVal(dpts, pos, p.age||25, budget),
       scoring,
     };
-  }).filter(Boolean);
+  }).filter(Boolean).filter(p => p.team && p.team !== "FA" && p.team !== "");
 }

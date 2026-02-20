@@ -27,6 +27,8 @@ export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
   const [activeTab, setActiveTab]       = useState("rankings");
   const [scoring, setScoring]     = useState("ppr");
+  const [statsData, setStatsData] = useState({});
+  const [rawPlayers, setRawPlayers] = useState([]);
 
   // Draft state
   const [draftStarted, setDraftStarted] = useState(false);
@@ -90,27 +92,44 @@ export default function Home() {
   }
 
   useEffect(() => {
-    async function load() {
-      setLoading(true);
-      let raw = [];
-      const status = {};
-      try {
-        const res = await fetch("https://api.sleeper.app/v1/players/nfl");
-        if (res.ok) {
-          const data = await res.json();
-          raw = Object.values(data).filter(p => p.active && p.position);
-          status.sleeper = {success:true, count:raw.length};
-        } else throw new Error();
-      } catch {
-        raw = SAMPLES;
-        status.sample = {success:true, count:raw.length};
-      }
-      setApiStatus(status);
-      setPlayers(buildPlayers(raw, budget, scoring));
-      setLoading(false);
+  async function load() {
+    setLoading(true);
+    let raw = [];
+    let statsData = {};
+    const status = {};
+
+    // Fetch players
+    try {
+      const res = await fetch("https://api.sleeper.app/v1/players/nfl");
+      if (res.ok) {
+        const data = await res.json();
+        raw = Object.values(data).filter(p => p.active && p.position);
+        status.sleeper = {success:true, count:raw.length};
+      } else throw new Error();
+    } catch {
+      raw = SAMPLES;
+      status.sample = {success:true, count:raw.length};
     }
-    load();
-  }, []);
+
+    // Fetch 2024 season stats
+    try {
+      const res = await fetch("https://api.sleeper.app/v1/stats/nfl/regular/2024");
+      if (res.ok) {
+        statsData = await res.json();
+        status.stats = {success:true, count:Object.keys(statsData).length};
+      }
+    } catch {
+      status.stats = {success:false, error:"Stats unavailable"};
+    }
+
+    setApiStatus(status);
+    setRawPlayers(raw);
+    setPlayers(buildPlayers(raw, budget, scoring, statsData, numTeams));
+    setStatsData(statsData);
+    setLoading(false);
+  }
+  load();
+}, []);
 
   if (loading) {
     return (
@@ -169,14 +188,9 @@ export default function Home() {
               {key:"std",  label:"Standard"},
             ].map(s => (
               <button key={s.key} onClick={() => {
-                setScoring(s.key);
-                setPlayers(prev => buildPlayers(prev.map(p => ({
-                  player_id: p.id, first_name: p.name.split(" ")[0],
-                  last_name: p.name.split(" ").slice(1).join(" "),
-                  position: p.position, team: p.team, age: p.age,
-                  number: p.number, years_exp: p.yearsExp, active: true
-                })), budget, s.key));
-              }}
+  setScoring(s.key);
+  setPlayers(buildPlayers(rawPlayers, budget, s.key, statsData, numTeams));
+}}
                 style={{...tabBtn(scoring===s.key,"linear-gradient(135deg,#6366f1,#8b5cf6)",C), padding:isMobile?"8px 12px":"10px 28px", fontSize:isMobile?11:13}}>
                 {s.label}
               </button>
