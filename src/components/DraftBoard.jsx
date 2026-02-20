@@ -1,4 +1,6 @@
-import { Search, ClipboardList, Trash2, RotateCcw, CheckCircle } from "lucide-react";
+"use client";
+import { useState } from "react";
+import { Search, ClipboardList, Trash2, RotateCcw } from "lucide-react";
 import { pc } from "@/constants/theme";
 import { btn, smallBtn, slotBtn, posBtn } from "@/utils/styleHelpers";
 
@@ -23,6 +25,7 @@ export default function DraftBoard({
   confirmBid,
   pickInfo,
 }) {
+  const [boardTab, setBoardTab] = useState("draft");
   const isAuction = draftType === "auction";
   const IDP_POS = ["DL","LB","DB"];
   const draftPositions = idpOn
@@ -52,6 +55,7 @@ export default function DraftBoard({
 
   function getTeamName(t) { return teamNames[t-1] || ("Team "+t); }
 
+  // ── Setup screen ──
   if (!draftStarted) {
     return (
       <div style={{background:C.cardBg,border:"1px solid "+C.border,borderRadius:20,padding:40,textAlign:"center"}}>
@@ -167,129 +171,231 @@ export default function DraftBoard({
 
   // ── Active draft UI ──
   return (
-    <div style={{display:"grid",gridTemplateColumns:"1fr 340px",gap:20}}>
-
-      {/* Left — available players */}
-      <div style={{background:C.cardBg,border:"1px solid "+C.border,borderRadius:16,overflow:"hidden"}}>
-        <div style={{padding:"16px 20px",borderBottom:"1px solid "+C.border,display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
-          <div style={{position:"relative",flex:1,minWidth:160}}>
-            <Search size={14} style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",color:C.textSec}}/>
-            <input
-              value={draftSearch} onChange={e => setDraftSearch(e.target.value)}
-              placeholder="Search players..."
-              style={{width:"100%",paddingLeft:32,paddingRight:10,paddingTop:8,paddingBottom:8,borderRadius:10,border:"1px solid "+C.border,background:C.inputBg,color:C.textPri,outline:"none",fontSize:13,boxSizing:"border-box"}}
-            />
-          </div>
-          <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
-            {draftPositions.map(pos => (
-              <button key={pos} onClick={() => setDraftPos(pos)} style={posBtn(draftPos===pos,pos,C)}>{pos}</button>
-            ))}
-          </div>
-        </div>
-
-        <div style={{maxHeight:500,overflowY:"auto"}}>
-          {(isAuction ? auctAvail : availPlayers).map(player => {
-            const pts = rankType === "dynasty" ? player.dynastyPoints : player.redraftPoints;
-            return (
-              <div
-                key={player.id}
-                onClick={() => isAuction ? setNomPlayer(player) : draftPlayer(player)}
-                style={{display:"flex",alignItems:"center",gap:12,padding:"10px 16px",borderBottom:"1px solid "+C.border,cursor:"pointer"}}
-                onMouseEnter={e => e.currentTarget.style.background=C.rowHover}
-                onMouseLeave={e => e.currentTarget.style.background="transparent"}
-              >
-                <div style={{width:3,height:36,borderRadius:2,background:pc(player.position),flexShrink:0}}/>
-                <div style={{flex:1}}>
-                  <div style={{fontWeight:700,fontSize:13}}>{player.name}</div>
-                  <div style={{fontSize:11,color:C.textSec,fontFamily:"monospace"}}>{player.team}</div>
-                </div>
-                <span style={{padding:"2px 8px",borderRadius:6,background:pc(player.position),color:"#fff",fontWeight:800,fontSize:11}}>{player.position}</span>
-                <span style={{fontWeight:700,fontSize:13,minWidth:40,textAlign:"right"}}>{pts.toFixed(0)}</span>
-                {isAuction && (
-                  <button
-                    onClick={e => { e.stopPropagation(); setNomPlayer(player); }}
-                    style={{padding:"4px 10px",borderRadius:8,border:"none",cursor:"pointer",background:"#f59e0b",color:"#000",fontWeight:700,fontSize:11}}>
-                    NOM
-                  </button>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Right — draft status panel */}
-      <div style={{display:"flex",flexDirection:"column",gap:12}}>
-
-        {/* Current pick info */}
-        {!isAuction && (
-          <div style={{background:C.curPickBg,border:"1px solid rgba(16,185,129,0.3)",borderRadius:14,padding:16}}>
-            <div style={{fontSize:11,fontFamily:"monospace",color:"#34d399",marginBottom:4}}>CURRENT PICK</div>
-            <div style={{fontSize:22,fontWeight:900}}>Round {currentPickInfo.round}, Pick {(pickIndex%draftTeams)+1}</div>
-            <div style={{fontSize:13,color:C.textSec}}>{getTeamName(currentPickInfo.team)} is on the clock</div>
-            <div style={{fontSize:11,fontFamily:"monospace",color:C.textSec,marginTop:4}}>{pickIndex}/{totalPicks} picks made</div>
-          </div>
-        )}
-
-        {/* Auction nomination panel */}
-        {isAuction && nomPlayer && (
-          <div style={{background:C.nomBg,border:"1px solid rgba(245,158,11,0.3)",borderRadius:14,padding:16}}>
-            <div style={{fontSize:11,fontFamily:"monospace",color:"#fbbf24",marginBottom:8}}>NOMINATION</div>
-            <div style={{fontWeight:800,fontSize:16,marginBottom:12}}>{nomPlayer.name}</div>
-            <div style={{display:"flex",gap:8,marginBottom:8}}>
-              <input
-                type="number" min={1} value={curBid}
-                onChange={e => setCurBid(Number(e.target.value))}
-                style={{flex:1,padding:"8px 10px",borderRadius:8,border:"1px solid "+C.border,background:C.inputBg,color:C.textPri,fontSize:14,outline:"none"}}
-              />
-              <select
-                value={bidTeam}
-                onChange={e => setBidTeam(Number(e.target.value))}
-                style={{flex:1,padding:"8px 10px",borderRadius:8,border:"1px solid "+C.border,background:C.inputBg,color:C.textPri,fontSize:13,outline:"none"}}
-              >
-                {Array.from({length:draftTeams},(_,i)=>i+1).map(t => (
-                  <option key={t} value={t}>{getTeamName(t)}</option>
-                ))}
-              </select>
-            </div>
+    <div>
+      {/* Tab switcher */}
+      {!isAuction && (
+        <div style={{display:"flex",justifyContent:"center",marginBottom:20}}>
+          <div style={{display:"inline-flex",background:C.cardBg,border:"1px solid "+C.border,borderRadius:12,padding:4,gap:4}}>
             <button
-              onClick={confirmBid}
-              style={{width:"100%",padding:"10px",borderRadius:10,border:"none",cursor:"pointer",background:"#f59e0b",color:"#000",fontWeight:700}}>
-              ✓ Confirm Winning Bid
+              onClick={() => setBoardTab("draft")}
+              style={{padding:"8px 24px",borderRadius:8,border:"none",cursor:"pointer",fontWeight:700,fontSize:13,background:boardTab==="draft"?"linear-gradient(135deg,#10b981,#0d9488)":"transparent",color:boardTab==="draft"?"#fff":C.textSec}}
+            >
+              🏈 Draft
+            </button>
+            <button
+              onClick={() => setBoardTab("board")}
+              style={{padding:"8px 24px",borderRadius:8,border:"none",cursor:"pointer",fontWeight:700,fontSize:13,background:boardTab==="board"?"linear-gradient(135deg,#6366f1,#8b5cf6)":"transparent",color:boardTab==="board"?"#fff":C.textSec}}
+            >
+              📋 Board
             </button>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Your roster */}
-        <div style={{background:C.cardBg,border:"1px solid "+C.border,borderRadius:14,padding:16,flex:1}}>
-          <div style={{fontSize:11,fontFamily:"monospace",color:C.textSec,marginBottom:10}}>YOUR ROSTER — {getTeamName(yourSlot)}</div>
-          {(isAuction
-            ? Object.entries(auctBids).filter(([,b])=>b.team===yourSlot).map(([pid,b])=>({...players.find(p=>p.id===pid),paidAmount:b.amount})).filter(Boolean)
-            : (() => { const r=[]; for(let i=0;i<totalPicks;i++){if(pickInfo(i).team===yourSlot&&picks[i])r.push({...picks[i],round:pickInfo(i).round});} return r; })()
-          ).map((p,i) => (
-            <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderBottom:"1px solid "+C.border}}>
-              <span style={{padding:"2px 6px",borderRadius:4,background:pc(p.position),color:"#fff",fontWeight:800,fontSize:10}}>{p.position}</span>
-              <span style={{flex:1,fontSize:12,fontWeight:600}}>{p.name}</span>
-              {isAuction
-                ? <span style={{fontSize:11,color:"#fbbf24",fontFamily:"monospace"}}>${p.paidAmount}</span>
-                : <span style={{fontSize:11,color:C.textSec,fontFamily:"monospace"}}>R{p.round}</span>
-              }
+      {/* ── DRAFT TAB ── */}
+      {(boardTab === "draft" || isAuction) && (
+        <div style={{display:"grid",gridTemplateColumns:"1fr 340px",gap:20}}>
+
+          {/* Left — available players */}
+          <div style={{background:C.cardBg,border:"1px solid "+C.border,borderRadius:16,overflow:"hidden"}}>
+            <div style={{padding:"16px 20px",borderBottom:"1px solid "+C.border,display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
+              <div style={{position:"relative",flex:1,minWidth:160}}>
+                <Search size={14} style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",color:C.textSec}}/>
+                <input
+                  value={draftSearch} onChange={e => setDraftSearch(e.target.value)}
+                  placeholder="Search players..."
+                  style={{width:"100%",paddingLeft:32,paddingRight:10,paddingTop:8,paddingBottom:8,borderRadius:10,border:"1px solid "+C.border,background:C.inputBg,color:C.textPri,outline:"none",fontSize:13,boxSizing:"border-box"}}
+                />
+              </div>
+              <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                {draftPositions.map(pos => (
+                  <button key={pos} onClick={() => setDraftPos(pos)} style={posBtn(draftPos===pos,pos,C)}>{pos}</button>
+                ))}
+              </div>
             </div>
-          ))}
-        </div>
 
-        {/* Controls */}
-        <div style={{display:"flex",gap:8}}>
-          {!isAuction && (
-            <button onClick={undoPick} style={{flex:1,padding:"10px",borderRadius:10,border:"none",cursor:"pointer",background:C.btnBgAlt,color:C.textSec,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
-              <RotateCcw size={14}/> Undo
-            </button>
-          )}
-          <button onClick={resetDraft} style={{flex:1,padding:"10px",borderRadius:10,border:"none",cursor:"pointer",background:"rgba(239,68,68,0.15)",color:"#ef4444",fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
-            <Trash2 size={14}/> Reset
-          </button>
+            <div style={{maxHeight:500,overflowY:"auto"}}>
+              {(isAuction ? auctAvail : availPlayers).map(player => {
+                const pts = rankType === "dynasty" ? player.dynastyPoints : player.redraftPoints;
+                return (
+                  <div
+                    key={player.id}
+                    onClick={() => isAuction ? setNomPlayer(player) : draftPlayer(player)}
+                    style={{display:"flex",alignItems:"center",gap:12,padding:"10px 16px",borderBottom:"1px solid "+C.border,cursor:"pointer"}}
+                    onMouseEnter={e => e.currentTarget.style.background=C.rowHover}
+                    onMouseLeave={e => e.currentTarget.style.background="transparent"}
+                  >
+                    <div style={{width:3,height:36,borderRadius:2,background:pc(player.position),flexShrink:0}}/>
+                    <div style={{flex:1}}>
+                      <div style={{fontWeight:700,fontSize:13}}>{player.name}</div>
+                      <div style={{fontSize:11,color:C.textSec,fontFamily:"monospace"}}>{player.team}</div>
+                    </div>
+                    <span style={{padding:"2px 8px",borderRadius:6,background:pc(player.position),color:"#fff",fontWeight:800,fontSize:11}}>{player.position}</span>
+                    <span style={{fontWeight:700,fontSize:13,minWidth:40,textAlign:"right"}}>{pts.toFixed(0)}</span>
+                    {isAuction && (
+                      <button
+                        onClick={e => { e.stopPropagation(); setNomPlayer(player); }}
+                        style={{padding:"4px 10px",borderRadius:8,border:"none",cursor:"pointer",background:"#f59e0b",color:"#000",fontWeight:700,fontSize:11}}>
+                        NOM
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Right panel */}
+          <div style={{display:"flex",flexDirection:"column",gap:12}}>
+
+            {/* Current pick */}
+            {!isAuction && (
+              <div style={{background:C.curPickBg,border:"1px solid rgba(16,185,129,0.3)",borderRadius:14,padding:16}}>
+                <div style={{fontSize:11,fontFamily:"monospace",color:"#34d399",marginBottom:4}}>CURRENT PICK</div>
+                <div style={{fontSize:22,fontWeight:900}}>Round {currentPickInfo.round}, Pick {(pickIndex%draftTeams)+1}</div>
+                <div style={{fontSize:13,color:C.textSec}}>{getTeamName(currentPickInfo.team)} is on the clock</div>
+                <div style={{fontSize:11,fontFamily:"monospace",color:C.textSec,marginTop:4}}>{pickIndex}/{totalPicks} picks made</div>
+              </div>
+            )}
+
+            {/* Auction nomination */}
+            {isAuction && nomPlayer && (
+              <div style={{background:C.nomBg,border:"1px solid rgba(245,158,11,0.3)",borderRadius:14,padding:16}}>
+                <div style={{fontSize:11,fontFamily:"monospace",color:"#fbbf24",marginBottom:8}}>NOMINATION</div>
+                <div style={{fontWeight:800,fontSize:16,marginBottom:12}}>{nomPlayer.name}</div>
+                <div style={{display:"flex",gap:8,marginBottom:8}}>
+                  <input
+                    type="number" min={1} value={curBid}
+                    onChange={e => setCurBid(Number(e.target.value))}
+                    style={{flex:1,padding:"8px 10px",borderRadius:8,border:"1px solid "+C.border,background:C.inputBg,color:C.textPri,fontSize:14,outline:"none"}}
+                  />
+                  <select
+                    value={bidTeam}
+                    onChange={e => setBidTeam(Number(e.target.value))}
+                    style={{flex:1,padding:"8px 10px",borderRadius:8,border:"1px solid "+C.border,background:C.inputBg,color:C.textPri,fontSize:13,outline:"none"}}
+                  >
+                    {Array.from({length:draftTeams},(_,i)=>i+1).map(t => (
+                      <option key={t} value={t}>{getTeamName(t)}</option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  onClick={confirmBid}
+                  style={{width:"100%",padding:"10px",borderRadius:10,border:"none",cursor:"pointer",background:"#f59e0b",color:"#000",fontWeight:700}}>
+                  ✓ Confirm Winning Bid
+                </button>
+              </div>
+            )}
+
+            {/* Your roster */}
+            <div style={{background:C.cardBg,border:"1px solid "+C.border,borderRadius:14,padding:16,flex:1}}>
+              <div style={{fontSize:11,fontFamily:"monospace",color:C.textSec,marginBottom:10}}>YOUR ROSTER — {getTeamName(yourSlot)}</div>
+              {(isAuction
+                ? Object.entries(auctBids).filter(([,b])=>b.team===yourSlot).map(([pid,b])=>({...players.find(p=>p.id===pid),paidAmount:b.amount})).filter(Boolean)
+                : (() => { const r=[]; for(let i=0;i<totalPicks;i++){if(pickInfo(i).team===yourSlot&&picks[i])r.push({...picks[i],round:pickInfo(i).round});} return r; })()
+              ).map((p,i) => (
+                <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderBottom:"1px solid "+C.border}}>
+                  <span style={{padding:"2px 6px",borderRadius:4,background:pc(p.position),color:"#fff",fontWeight:800,fontSize:10}}>{p.position}</span>
+                  <span style={{flex:1,fontSize:12,fontWeight:600}}>{p.name}</span>
+                  {isAuction
+                    ? <span style={{fontSize:11,color:"#fbbf24",fontFamily:"monospace"}}>${p.paidAmount}</span>
+                    : <span style={{fontSize:11,color:C.textSec,fontFamily:"monospace"}}>R{p.round}</span>
+                  }
+                </div>
+              ))}
+            </div>
+
+            {/* Controls */}
+            <div style={{display:"flex",gap:8}}>
+              {!isAuction && (
+                <button onClick={undoPick} style={{flex:1,padding:"10px",borderRadius:10,border:"none",cursor:"pointer",background:C.btnBgAlt,color:C.textSec,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+                  <RotateCcw size={14}/> Undo
+                </button>
+              )}
+              <button onClick={resetDraft} style={{flex:1,padding:"10px",borderRadius:10,border:"none",cursor:"pointer",background:"rgba(239,68,68,0.15)",color:"#ef4444",fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+                <Trash2 size={14}/> Reset
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* ── BOARD TAB ── */}
+      {boardTab === "board" && !isAuction && (
+        <div>
+          {/* Controls */}
+          <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginBottom:12}}>
+            <button onClick={undoPick} style={{padding:"8px 16px",borderRadius:10,border:"none",cursor:"pointer",background:C.btnBgAlt,color:C.textSec,fontWeight:700,display:"flex",alignItems:"center",gap:6,fontSize:13}}>
+              <RotateCcw size={13}/> Undo
+            </button>
+            <button onClick={resetDraft} style={{padding:"8px 16px",borderRadius:10,border:"none",cursor:"pointer",background:"rgba(239,68,68,0.15)",color:"#ef4444",fontWeight:700,display:"flex",alignItems:"center",gap:6,fontSize:13}}>
+              <Trash2 size={13}/> Reset
+            </button>
+          </div>
+
+          {/* Grid */}
+          <div style={{overflowX:"auto"}}>
+            <table style={{borderCollapse:"collapse",minWidth:"100%",fontSize:12}}>
+              {/* Header row — team names */}
+              <thead>
+                <tr>
+                  <th style={{padding:"10px 12px",background:C.headerBg,border:"1px solid "+C.border,fontSize:11,fontFamily:"monospace",color:C.textSec,whiteSpace:"nowrap",minWidth:60}}>RND</th>
+                  {Array.from({length:draftTeams},(_,i)=>i+1).map(t => (
+                    <th key={t} style={{padding:"10px 12px",background:t===yourSlot?C.yourCellBg:C.headerBg,border:"1px solid "+C.border,fontSize:11,fontFamily:"monospace",color:t===yourSlot?"#818cf8":C.textSec,whiteSpace:"nowrap",minWidth:120,textAlign:"center"}}>
+                      {getTeamName(t)}
+                      {t===yourSlot && <span style={{marginLeft:4,fontSize:10,color:"#818cf8"}}>(YOU)</span>}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {Array.from({length:draftRounds},(_,r)=>r+1).map(round => (
+                  <tr key={round}>
+                    {/* Round number */}
+                    <td style={{padding:"8px 12px",background:C.stickyBg,border:"1px solid "+C.border,fontFamily:"monospace",fontWeight:700,fontSize:12,color:C.textSec,textAlign:"center"}}>
+                      R{round}
+                    </td>
+                    {/* Each team's pick in this round */}
+                    {Array.from({length:draftTeams},(_,t)=>t+1).map(team => {
+                      // Find the pick index for this round + team
+                      const idx = Array.from({length:totalPicks},(_,i)=>i).find(i => {
+                        const info = pickInfo(i);
+                        return info.round === round && info.team === team;
+                      });
+                      const player = idx !== undefined ? picks[idx] : null;
+                      const isCurrent = idx === pickIndex;
+                      const isPast = idx < pickIndex;
+                      const isYourTeam = team === yourSlot;
+
+                      return (
+                        <td
+                          key={team}
+                          style={{padding:"6px 8px",border:"1px solid "+C.border,background:isCurrent?C.curPickBg:isYourTeam?C.yourColBg:"transparent",textAlign:"center",verticalAlign:"middle",minWidth:120}}
+                        >
+                          {player ? (
+                            <div style={{padding:"6px 8px",borderRadius:8,background:isYourTeam?C.yourCellBg:C.otherCellBg,border:"1px solid "+(isYourTeam?"rgba(99,102,241,0.3)":C.border)}}>
+                              <div style={{fontWeight:700,fontSize:11,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:100}}>{player.name}</div>
+                              <div style={{fontSize:10,fontFamily:"monospace",color:pc(player.position),marginTop:2}}>{player.position} · {player.team}</div>
+                            </div>
+                          ) : isCurrent ? (
+                            <div style={{padding:"6px 8px",borderRadius:8,border:"2px dashed #10b981",color:"#10b981",fontSize:11,fontWeight:700,animation:"pulse 1s ease-in-out infinite"}}>
+                              ON CLOCK
+                            </div>
+                          ) : isPast ? (
+                            <span style={{color:C.dashCol,fontSize:13}}>—</span>
+                          ) : (
+                            <span style={{color:C.dotCol,fontSize:16}}>·</span>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
