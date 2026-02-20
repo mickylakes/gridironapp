@@ -113,10 +113,12 @@ export default function Home() {
 
     // Fetch 2025 season stats
     try {
-      const res = await fetch("https://api.sleeper.app/v1/stats/nfl/regular/2025");
+      const currentYear = new Date().getFullYear();
+const statsYear = new Date().getMonth() >= 7 ? currentYear : currentYear - 1;
+const res = await fetch(`https://api.sleeper.app/v1/stats/nfl/regular/${statsYear}`);
       if (res.ok) {
         statsData = await res.json();
-        status.stats = {success:true, count:Object.keys(statsData).length, year:2025};
+        status.stats = {success:true, count:Object.keys(statsData).length, year:statsYear};
       }
     } catch {
       status.stats = {success:false, error:"Stats unavailable"};
