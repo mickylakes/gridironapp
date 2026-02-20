@@ -127,7 +127,7 @@ export default function DraftBoard({
 
           <div>
             <label style={{display:"block",fontWeight:700,fontSize:13,marginBottom:8,color:C.textSec,textTransform:"uppercase",letterSpacing:"0.05em"}}>Team Names (optional)</label>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+            <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:6}}>
               {Array.from({length:draftTeams},(_,i)=>i+1).map(t => (
                 <div key={t} style={{display:"flex",alignItems:"center",gap:6}}>
                   <span style={{fontSize:11,fontFamily:"monospace",fontWeight:700,color:t===yourSlot?"#818cf8":C.textSec,minWidth:20,textAlign:"right"}}>{t}</span>
