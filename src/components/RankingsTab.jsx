@@ -112,12 +112,12 @@ export default function RankingsTab({
               <div style={{display:"flex",alignItems:"center",gap:10}}>
                 <div style={{width:3,height:40,borderRadius:2,background:pc(player.position),flexShrink:0}}/>
                 <div>
-                  <div style={{fontWeight:700,fontSize:isMobile?12:14}}>{player.name}</div>
-                  {isMobile
-                    ? <div style={{fontSize:10,fontFamily:"monospace",color:C.textSec}}>{player.team}</div>
-                    : player.number && <div style={{fontSize:11,fontFamily:"monospace",color:C.textSec}}>#{player.number}</div>
-                  }
-                </div>
+  <div style={{fontWeight:700,fontSize:isMobile?12:14}}>{player.name}</div>
+  {isMobile
+    ? <div style={{fontSize:10,fontFamily:"monospace",color:C.textSec}}>{player.team}</div>
+    : (!!player.number && String(player.number) !== "0" && <div style={{fontSize:11,fontFamily:"monospace",color:C.textSec}}>#{player.number}</div>)
+  }
+</div>
               </div>
               <div style={{display:"flex",alignItems:"center",justifyContent:"center"}}>
                 <span style={{padding:"3px 8px",borderRadius:6,background:pc(player.position),color:"#fff",fontWeight:800,fontSize:11}}>{player.position}</span>

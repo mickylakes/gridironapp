@@ -21,7 +21,7 @@ export default function PlayerModal({ player, favorites, toggleFav, onClose }) {
               <h2 style={{margin:"0 0 6px",fontSize:26,fontWeight:900}}>{player.name}</h2>
               <div style={{display:"flex",gap:8,alignItems:"center"}}>
                 <span style={{padding:"3px 10px",borderRadius:6,background:pc(player.position),color:"#fff",fontWeight:800,fontSize:12}}>{player.position}</span>
-                <span style={{fontSize:13,fontFamily:"monospace"}}>{player.team} {player.number ? "#"+player.number : ""}</span>
+                <span style={{fontSize:13,fontFamily:"monospace"}}>{player.team} {player.number && player.number !== "0" && player.number !== 0 ? "#"+player.number : ""}</span>
                 <span style={{fontSize:13}}>Age {player.age} · {player.yearsExp} YOE</span>
               </div>
             </div>
