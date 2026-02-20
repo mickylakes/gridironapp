@@ -54,7 +54,6 @@ export default function DraftBoard({
     .slice(0, 100);
 
   const currentPickInfo = pickInfo(pickIndex);
-
   function getTeamName(t) { return teamNames[t-1] || ("Team "+t); }
 
   // ── Setup screen ──
@@ -64,10 +63,8 @@ export default function DraftBoard({
         <ClipboardList size={56} color="#34d399" style={{marginBottom:16}}/>
         <h2 style={{fontSize:32,fontWeight:900,margin:"0 0 8px"}}>Mock Draft Board</h2>
         <p style={{color:C.textSec,marginBottom:32}}>Configure your draft settings and start picking.</p>
-
         <div style={{maxWidth:520,margin:"0 auto",textAlign:"left",display:"flex",flexDirection:"column",gap:20}}>
 
-          {/* Draft type */}
           <div>
             <label style={{display:"block",fontWeight:700,fontSize:13,marginBottom:8,color:C.textSec,textTransform:"uppercase",letterSpacing:"0.05em"}}>Draft Type</label>
             <div style={{display:"flex",gap:8}}>
@@ -80,7 +77,6 @@ export default function DraftBoard({
             </div>
           </div>
 
-          {/* Teams */}
           <div>
             <label style={{display:"block",fontWeight:700,fontSize:13,marginBottom:8,color:C.textSec,textTransform:"uppercase",letterSpacing:"0.05em"}}>Teams</label>
             <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
@@ -90,7 +86,6 @@ export default function DraftBoard({
             </div>
           </div>
 
-          {/* Rounds */}
           {!isAuction && (
             <div>
               <label style={{display:"block",fontWeight:700,fontSize:13,marginBottom:8,color:C.textSec,textTransform:"uppercase",letterSpacing:"0.05em"}}>Rounds</label>
@@ -102,7 +97,6 @@ export default function DraftBoard({
             </div>
           )}
 
-          {/* Pick slot */}
           {!isAuction && (
             <div>
               <label style={{display:"block",fontWeight:700,fontSize:13,marginBottom:8,color:C.textSec,textTransform:"uppercase",letterSpacing:"0.05em"}}>Your Pick Slot</label>
@@ -114,7 +108,6 @@ export default function DraftBoard({
             </div>
           )}
 
-          {/* Auction budget */}
           {isAuction && (
             <div>
               <label style={{display:"block",fontWeight:700,fontSize:13,marginBottom:8,color:C.textSec,textTransform:"uppercase",letterSpacing:"0.05em"}}>Budget Per Team</label>
@@ -132,7 +125,6 @@ export default function DraftBoard({
             </div>
           )}
 
-          {/* Team names */}
           <div>
             <label style={{display:"block",fontWeight:700,fontSize:13,marginBottom:8,color:C.textSec,textTransform:"uppercase",letterSpacing:"0.05em"}}>Team Names (optional)</label>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
@@ -150,7 +142,6 @@ export default function DraftBoard({
             </div>
           </div>
 
-          {/* IDP toggle */}
           <div>
             <label style={{display:"block",fontWeight:700,fontSize:13,marginBottom:8,color:C.textSec,textTransform:"uppercase",letterSpacing:"0.05em"}}>IDP</label>
             <div style={{display:"flex",gap:8}}>
@@ -159,7 +150,6 @@ export default function DraftBoard({
             </div>
           </div>
 
-          {/* Start button */}
           <button
             onClick={() => setDraftStarted(true)}
             style={{padding:"16px",borderRadius:14,border:"none",cursor:"pointer",background:"linear-gradient(135deg,#10b981,#0d9488)",color:"#fff",fontWeight:900,fontSize:16,marginTop:8}}
@@ -174,28 +164,26 @@ export default function DraftBoard({
   // ── Active draft UI ──
   return (
     <div>
-      {/* Tab switcher */}
-      {!isAuction && (
-        <div style={{display:"flex",justifyContent:"center",marginBottom:20}}>
-          <div style={{display:"inline-flex",background:C.cardBg,border:"1px solid "+C.border,borderRadius:12,padding:4,gap:4}}>
-            <button
-              onClick={() => setBoardTab("draft")}
-              style={{padding:"8px 24px",borderRadius:8,border:"none",cursor:"pointer",fontWeight:700,fontSize:13,background:boardTab==="draft"?"linear-gradient(135deg,#10b981,#0d9488)":"transparent",color:boardTab==="draft"?"#fff":C.textSec}}
-            >
-              🏈 Draft
-            </button>
-            <button
-              onClick={() => setBoardTab("board")}
-              style={{padding:"8px 24px",borderRadius:8,border:"none",cursor:"pointer",fontWeight:700,fontSize:13,background:boardTab==="board"?"linear-gradient(135deg,#6366f1,#8b5cf6)":"transparent",color:boardTab==="board"?"#fff":C.textSec}}
-            >
-              📋 Board
-            </button>
-          </div>
+      {/* Tab switcher — shown for both snake/linear and auction */}
+      <div style={{display:"flex",justifyContent:"center",marginBottom:20}}>
+        <div style={{display:"inline-flex",background:C.cardBg,border:"1px solid "+C.border,borderRadius:12,padding:4,gap:4}}>
+          <button
+            onClick={() => setBoardTab("draft")}
+            style={{padding:"8px 24px",borderRadius:8,border:"none",cursor:"pointer",fontWeight:700,fontSize:13,background:boardTab==="draft"?"linear-gradient(135deg,#10b981,#0d9488)":"transparent",color:boardTab==="draft"?"#fff":C.textSec}}
+          >
+            {isAuction ? "💰 Auction" : "🏈 Draft"}
+          </button>
+          <button
+            onClick={() => setBoardTab("board")}
+            style={{padding:"8px 24px",borderRadius:8,border:"none",cursor:"pointer",fontWeight:700,fontSize:13,background:boardTab==="board"?"linear-gradient(135deg,#6366f1,#8b5cf6)":"transparent",color:boardTab==="board"?"#fff":C.textSec}}
+          >
+            📋 Board
+          </button>
         </div>
-      )}
+      </div>
 
       {/* ── DRAFT TAB ── */}
-      {(boardTab === "draft" || isAuction) && (
+      {boardTab === "draft" && (
         <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 340px",gap:20}}>
 
           {/* Left — available players */}
@@ -249,8 +237,6 @@ export default function DraftBoard({
 
           {/* Right panel */}
           <div style={{display:"flex",flexDirection:"column",gap:12}}>
-
-            {/* Current pick */}
             {!isAuction && (
               <div style={{background:C.curPickBg,border:"1px solid rgba(16,185,129,0.3)",borderRadius:14,padding:16}}>
                 <div style={{fontSize:11,fontFamily:"monospace",color:"#34d399",marginBottom:4}}>CURRENT PICK</div>
@@ -260,7 +246,6 @@ export default function DraftBoard({
               </div>
             )}
 
-            {/* Auction nomination */}
             {isAuction && nomPlayer && (
               <div style={{background:C.nomBg,border:"1px solid rgba(245,158,11,0.3)",borderRadius:14,padding:16}}>
                 <div style={{fontSize:11,fontFamily:"monospace",color:"#fbbf24",marginBottom:8}}>NOMINATION</div>
@@ -281,15 +266,12 @@ export default function DraftBoard({
                     ))}
                   </select>
                 </div>
-                <button
-                  onClick={confirmBid}
-                  style={{width:"100%",padding:"10px",borderRadius:10,border:"none",cursor:"pointer",background:"#f59e0b",color:"#000",fontWeight:700}}>
+                <button onClick={confirmBid} style={{width:"100%",padding:"10px",borderRadius:10,border:"none",cursor:"pointer",background:"#f59e0b",color:"#000",fontWeight:700}}>
                   ✓ Confirm Winning Bid
                 </button>
               </div>
             )}
 
-            {/* Your roster */}
             <div style={{background:C.cardBg,border:"1px solid "+C.border,borderRadius:14,padding:16,flex:1}}>
               <div style={{fontSize:11,fontFamily:"monospace",color:C.textSec,marginBottom:10}}>YOUR ROSTER — {getTeamName(yourSlot)}</div>
               {(isAuction
@@ -307,7 +289,6 @@ export default function DraftBoard({
               ))}
             </div>
 
-            {/* Controls */}
             <div style={{display:"flex",gap:8}}>
               {!isAuction && (
                 <button onClick={undoPick} style={{flex:1,padding:"10px",borderRadius:10,border:"none",cursor:"pointer",background:C.btnBgAlt,color:C.textSec,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
@@ -322,10 +303,9 @@ export default function DraftBoard({
         </div>
       )}
 
-      {/* ── BOARD TAB ── */}
+      {/* ── SNAKE/LINEAR BOARD TAB ── */}
       {boardTab === "board" && !isAuction && (
         <div>
-          {/* Controls */}
           <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginBottom:12}}>
             <button onClick={undoPick} style={{padding:"8px 16px",borderRadius:10,border:"none",cursor:"pointer",background:C.btnBgAlt,color:C.textSec,fontWeight:700,display:"flex",alignItems:"center",gap:6,fontSize:13}}>
               <RotateCcw size={13}/> Undo
@@ -334,18 +314,14 @@ export default function DraftBoard({
               <Trash2 size={13}/> Reset
             </button>
           </div>
-
-          {/* Grid */}
           <div style={{overflowX:"auto"}}>
             <table style={{borderCollapse:"collapse",minWidth:"100%",fontSize:12}}>
-              {/* Header row — team names */}
               <thead>
                 <tr>
                   <th style={{padding:"10px 12px",background:C.headerBg,border:"1px solid "+C.border,fontSize:11,fontFamily:"monospace",color:C.textSec,whiteSpace:"nowrap",minWidth:60}}>RND</th>
                   {Array.from({length:draftTeams},(_,i)=>i+1).map(t => (
                     <th key={t} style={{padding:"10px 12px",background:t===yourSlot?C.yourCellBg:C.headerBg,border:"1px solid "+C.border,fontSize:11,fontFamily:"monospace",color:t===yourSlot?"#818cf8":C.textSec,whiteSpace:"nowrap",minWidth:120,textAlign:"center"}}>
-                      {getTeamName(t)}
-                      {t===yourSlot && <span style={{marginLeft:4,fontSize:10,color:"#818cf8"}}>(YOU)</span>}
+                      {getTeamName(t)}{t===yourSlot && <span style={{marginLeft:4,fontSize:10,color:"#818cf8"}}>(YOU)</span>}
                     </th>
                   ))}
                 </tr>
@@ -353,13 +329,8 @@ export default function DraftBoard({
               <tbody>
                 {Array.from({length:draftRounds},(_,r)=>r+1).map(round => (
                   <tr key={round}>
-                    {/* Round number */}
-                    <td style={{padding:"8px 12px",background:C.stickyBg,border:"1px solid "+C.border,fontFamily:"monospace",fontWeight:700,fontSize:12,color:C.textSec,textAlign:"center"}}>
-                      R{round}
-                    </td>
-                    {/* Each team's pick in this round */}
+                    <td style={{padding:"8px 12px",background:C.stickyBg,border:"1px solid "+C.border,fontFamily:"monospace",fontWeight:700,fontSize:12,color:C.textSec,textAlign:"center"}}>R{round}</td>
                     {Array.from({length:draftTeams},(_,t)=>t+1).map(team => {
-                      // Find the pick index for this round + team
                       const idx = Array.from({length:totalPicks},(_,i)=>i).find(i => {
                         const info = pickInfo(i);
                         return info.round === round && info.team === team;
@@ -368,21 +339,15 @@ export default function DraftBoard({
                       const isCurrent = idx === pickIndex;
                       const isPast = idx < pickIndex;
                       const isYourTeam = team === yourSlot;
-
                       return (
-                        <td
-                          key={team}
-                          style={{padding:"6px 8px",border:"1px solid "+C.border,background:isCurrent?C.curPickBg:isYourTeam?C.yourColBg:"transparent",textAlign:"center",verticalAlign:"middle",minWidth:120}}
-                        >
+                        <td key={team} style={{padding:"6px 8px",border:"1px solid "+C.border,background:isCurrent?C.curPickBg:isYourTeam?C.yourColBg:"transparent",textAlign:"center",verticalAlign:"middle",minWidth:120}}>
                           {player ? (
                             <div style={{padding:"6px 8px",borderRadius:8,background:isYourTeam?C.yourCellBg:C.otherCellBg,border:"1px solid "+(isYourTeam?"rgba(99,102,241,0.3)":C.border)}}>
                               <div style={{fontWeight:700,fontSize:11,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:100}}>{player.name}</div>
                               <div style={{fontSize:10,fontFamily:"monospace",color:pc(player.position),marginTop:2}}>{player.position} · {player.team}</div>
                             </div>
                           ) : isCurrent ? (
-                            <div style={{padding:"6px 8px",borderRadius:8,border:"2px dashed #10b981",color:"#10b981",fontSize:11,fontWeight:700,animation:"pulse 1s ease-in-out infinite"}}>
-                              ON CLOCK
-                            </div>
+                            <div style={{padding:"6px 8px",borderRadius:8,border:"2px dashed #10b981",color:"#10b981",fontSize:11,fontWeight:700,animation:"pulse 1s ease-in-out infinite"}}>ON CLOCK</div>
                           ) : isPast ? (
                             <span style={{color:C.dashCol,fontSize:13}}>—</span>
                           ) : (
@@ -395,6 +360,66 @@ export default function DraftBoard({
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* ── AUCTION BOARD TAB ── */}
+      {boardTab === "board" && isAuction && (
+        <div>
+          <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginBottom:12}}>
+            <button onClick={resetDraft} style={{padding:"8px 16px",borderRadius:10,border:"none",cursor:"pointer",background:"rgba(239,68,68,0.15)",color:"#ef4444",fontWeight:700,display:"flex",alignItems:"center",gap:6,fontSize:13}}>
+              <Trash2 size={13}/> Reset
+            </button>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(auto-fill,minmax(280px,1fr))",gap:16}}>
+            {Array.from({length:draftTeams},(_,i)=>i+1).map(team => {
+              const roster = Object.entries(auctBids)
+                .filter(([,b]) => b.team === team)
+                .map(([pid,b]) => ({...players.find(p=>p.id===pid), paidAmount:b.amount}))
+                .filter(Boolean);
+              const spent = roster.reduce((s,p) => s+p.paidAmount, 0);
+              const remaining = auctBudget - spent;
+              const isYourTeam = team === yourSlot;
+              return (
+                <div key={team} style={{background:isYourTeam?C.yourCellBg:C.cardBg,border:"1px solid "+(isYourTeam?"rgba(99,102,241,0.4)":C.border),borderRadius:14,overflow:"hidden"}}>
+                  <div style={{padding:"12px 16px",borderBottom:"1px solid "+C.border,display:"flex",justifyContent:"space-between",alignItems:"center",background:isYourTeam?"rgba(99,102,241,0.1)":C.headerBg}}>
+                    <div>
+                      <div style={{fontWeight:800,fontSize:14,color:isYourTeam?"#818cf8":C.textPri}}>
+                        {getTeamName(team)}
+                        {isYourTeam && <span style={{marginLeft:6,fontSize:11,color:"#818cf8"}}>(YOU)</span>}
+                      </div>
+                      <div style={{fontSize:11,fontFamily:"monospace",color:C.textSec,marginTop:2}}>{roster.length} players</div>
+                    </div>
+                    <div style={{textAlign:"right"}}>
+                      <div style={{fontWeight:900,fontSize:16,color:remaining<20?"#ef4444":remaining<50?"#fbbf24":"#34d399"}}>${remaining}</div>
+                      <div style={{fontSize:10,fontFamily:"monospace",color:C.textSec}}>remaining</div>
+                    </div>
+                  </div>
+                  <div style={{height:4,background:C.trackBg}}>
+                    <div style={{height:"100%",borderRadius:2,background:remaining<20?"#ef4444":remaining<50?"#fbbf24":"#34d399",width:((spent/auctBudget)*100)+"%",transition:"width 0.3s"}}/>
+                  </div>
+                  <div style={{padding:"8px 0",maxHeight:280,overflowY:"auto"}}>
+                    {roster.length === 0 ? (
+                      <div style={{padding:"16px",textAlign:"center",color:C.textSec,fontSize:12}}>No players yet</div>
+                    ) : roster.map((p,i) => (
+                      <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 16px",borderBottom:"1px solid "+C.border}}>
+                        <span style={{padding:"2px 6px",borderRadius:4,background:pc(p.position),color:"#fff",fontWeight:800,fontSize:10,flexShrink:0}}>{p.position}</span>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontWeight:700,fontSize:12,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</div>
+                          <div style={{fontSize:10,color:C.textSec,fontFamily:"monospace"}}>{p.team}</div>
+                        </div>
+                        <span style={{fontWeight:900,fontSize:13,color:"#fbbf24",flexShrink:0}}>${p.paidAmount}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{padding:"8px 16px",borderTop:"1px solid "+C.border,display:"flex",justifyContent:"space-between",fontSize:11,fontFamily:"monospace",color:C.textSec}}>
+                    <span>Spent: <strong style={{color:C.textPri}}>${spent}</strong></span>
+                    <span>Budget: <strong style={{color:C.textPri}}>${auctBudget}</strong></span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
