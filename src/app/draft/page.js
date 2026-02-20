@@ -10,6 +10,9 @@ import DraftBoard from "@/components/DraftBoard";
 import PlayerModal from "@/components/PlayerModal";
 import SettingsModal from "@/components/SettingsModal";
 import useWindowSize from "@/hooks/useWindowSize";
+import { createClient } from "@/lib/supabase";
+import AuthModal from "@/components/AuthModal";
+import { LogIn, LogOut } from "lucide-react";
 
 export default function Home() {
   const [players, setPlayers]     = useState([]);
@@ -29,6 +32,8 @@ export default function Home() {
   const [scoring, setScoring]     = useState("ppr");
   const [statsData, setStatsData] = useState({});
   const [rawPlayers, setRawPlayers] = useState([]);
+  const [user, setUser] = useState(null);
+  const [showAuth, setShowAuth] = useState(false);
 
   // Draft state
   const [draftStarted, setDraftStarted] = useState(false);
@@ -55,6 +60,65 @@ export default function Home() {
   const C = theme === "dark" ? DARK : LIGHT;
   const dk = theme === "dark";
   const totalPicks = draftTeams * draftRounds;
+
+  useEffect(() => {
+  const supabase = createClient();
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    setUser(session?.user ?? null);
+  });
+  const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    setUser(session?.user ?? null);
+  });
+  return () => subscription.unsubscribe();
+}, []);
+
+useEffect(() => {
+  const supabase = createClient();
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    setUser(session?.user ?? null);
+  });
+  const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    setUser(session?.user ?? null);
+  });
+  return () => subscription.unsubscribe();
+}, []);
+
+useEffect(() => {
+  if (user) loadSettings();
+}, [user]);
+
+async function handleSignOut() {
+  const supabase = createClient();
+  await supabase.auth.signOut();
+  setUser(null);
+}
+
+async function saveSettings(newSettings) {
+  if (!user) {
+    console.log("saveSettings: no user, skipping");
+     return;
+  }
+  console.log("saveSettings called with:", newSettings, "user:", user.id);
+  const supabase = createClient();
+  const { data, error } = await supabase.from("user_settings").upsert({
+    user_id: user.id,
+    ...newSettings,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: "user_id" });
+  console.log("saveSettings result:", data, error);
+}
+
+async function loadSettings() {
+  if (!user) return;
+  const supabase = createClient();
+  const { data } = await supabase.from("user_settings").select("*").eq("user_id", user.id).single();
+  if (data) {
+    if (data.theme) setTheme(data.theme);
+    if (data.scoring) setScoring(data.scoring);
+    if (data.budget) setBudget(data.budget);
+    if (data.num_teams) setNumTeams(data.num_teams);
+  }
+}
 
   function pickInfo(idx) {
     const round = Math.floor(idx/draftTeams)+1;
@@ -149,10 +213,15 @@ const res = await fetch(`https://api.sleeper.app/v1/stats/nfl/regular/${statsYea
     <div style={{minHeight:"100vh",background:C.pageBg,color:C.textPri,fontFamily:"system-ui,sans-serif"}}>
 
       {/* Fixed buttons */}
-      <button onClick={() => setTheme(dk?"light":"dark")}
+      <button onClick={() => {
+        const newTheme = dk ? "light" : "dark";
+        setTheme(newTheme);
+        saveSettings({ theme: newTheme, scoring, budget, num_teams: numTeams });
+      }}
         style={{position:"fixed",top:16,right:16,zIndex:50,padding:"10px",borderRadius:12,border:"none",cursor:"pointer",background:C.themeBtnBg,color:C.themeBtnCol,boxShadow:"0 2px 8px rgba(0,0,0,0.2)"}}>
         {dk ? <Sun size={18}/> : <Moon size={18}/>}
       </button>
+
       <button onClick={() => setShowSettings(true)}
         style={{position:"fixed",top:16,right:64,zIndex:50,padding:"10px",borderRadius:12,border:"none",cursor:"pointer",background:C.themeBtnBg,color:C.settBtnCol,boxShadow:"0 2px 8px rgba(0,0,0,0.2)"}}>
         <Settings size={18}/>
@@ -189,10 +258,11 @@ const res = await fetch(`https://api.sleeper.app/v1/stats/nfl/regular/${statsYea
               {key:"half", label:"Half PPR"},
               {key:"std",  label:"Standard"},
             ].map(s => (
-              <button key={s.key} onClick={() => {
-  setScoring(s.key);
-  setPlayers(buildPlayers(rawPlayers, budget, s.key, statsData, numTeams));
-}}
+        <button key={s.key} onClick={() => {
+          setScoring(s.key);
+          setPlayers(buildPlayers(rawPlayers, budget, s.key, statsData, numTeams));
+          saveSettings({ theme, scoring: s.key, budget, num_teams: numTeams });
+        }}
                 style={{...tabBtn(scoring===s.key,"linear-gradient(135deg,#6366f1,#8b5cf6)",C), padding:isMobile?"8px 12px":"10px 28px", fontSize:isMobile?11:13}}>
                 {s.label}
               </button>
@@ -251,7 +321,14 @@ const res = await fetch(`https://api.sleeper.app/v1/stats/nfl/regular/${statsYea
 
       {/* Modals */}
       <PlayerModal player={selPlayer} favorites={favorites} toggleFav={toggleFav} onClose={() => setSelPlayer(null)}/>
-      <SettingsModal C={C} budget={budget} setBudget={setBudget} numTeams={numTeams} setNumTeams={setNumTeams} onClose={() => setShowSettings(false)} showSettings={showSettings}/>
+      <SettingsModal
+        C={C} budget={budget} setBudget={setBudget}
+        numTeams={numTeams} setNumTeams={setNumTeams}
+        onClose={() => setShowSettings(false)}
+        showSettings={showSettings}
+        onSave={() => saveSettings({ theme, scoring, budget, num_teams: numTeams })}
+      />
+      {showAuth && <AuthModal C={C} onClose={() => setShowAuth(false)} onSuccess={() => setShowAuth(false)}/>}
 
       <style>{"@keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.5} } *{box-sizing:border-box} body{margin:0}"}</style>
     </div>

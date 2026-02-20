@@ -1,13 +1,34 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { TrendingUp, Zap, Clock, Users, Star, Shield, ChevronRight } from "lucide-react";
+import { createClient } from "@/lib/supabase";
+import AuthModal from "@/components/AuthModal";
 
 export default function LandingPage() {
   const router = useRouter();
   const [hoveredFeature, setHoveredFeature] = useState(null);
+  const [user, setUser] = useState(null);
+  const [showAuth, setShowAuth] = useState(false);
 
-  const features = [
+  useEffect(() => {
+  const supabase = createClient();
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    setUser(session?.user ?? null);
+  });
+  const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    setUser(session?.user ?? null);
+  });
+  return () => subscription.unsubscribe();
+}, []);
+
+async function handleSignOut() {
+  const supabase = createClient();
+  await supabase.auth.signOut();
+  setUser(null);
+}
+
+   const features = [
     { icon: <TrendingUp size={28} color="#818cf8"/>, title: "Live Rankings", desc: "PPR, Half PPR, and Standard rankings updated in real time. Filter by position, search players, and export to CSV." },
     { icon: <Zap size={28} color="#34d399"/>, title: "Mock Draft Simulator", desc: "Snake, linear, and auction drafts with customizable teams, rounds, and pick slots. Practice before your real draft." },
     { icon: <Clock size={28} color="#f472b6"/>, title: "Dynasty Rankings", desc: "Age and experience-adjusted dynasty rankings to help you build a championship roster for years to come." },
@@ -21,17 +42,45 @@ export default function LandingPage() {
 
       {/* Nav */}
       <nav style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"20px 40px",borderBottom:"1px solid #1e293b"}}>
-        <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <TrendingUp size={24} color="#818cf8"/>
-          <span style={{fontSize:22,fontWeight:900,background:"linear-gradient(90deg,#818cf8,#c084fc,#f472b6)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>GRID IRON</span>
-        </div>
+  <div style={{display:"flex",alignItems:"center",gap:10}}>
+    <TrendingUp size={24} color="#818cf8"/>
+    <span style={{fontSize:22,fontWeight:900,background:"linear-gradient(90deg,#818cf8,#c084fc,#f472b6)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>GRID IRON</span>
+  </div>
+  <div style={{display:"flex",gap:8,alignItems:"center"}}>
+    {user ? (
+      <>
+        <span style={{fontSize:13,color:"#94a3b8"}}>{user.email}</span>
+        <button
+          onClick={handleSignOut}
+          style={{padding:"8px 16px",borderRadius:10,border:"1px solid #1e293b",cursor:"pointer",background:"transparent",color:"#94a3b8",fontWeight:700,fontSize:13}}
+        >
+          Sign Out
+        </button>
         <button
           onClick={() => router.push("/draft")}
           style={{padding:"10px 24px",borderRadius:12,border:"none",cursor:"pointer",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",fontWeight:700,fontSize:14,display:"flex",alignItems:"center",gap:6}}
         >
           Launch App <ChevronRight size={16}/>
         </button>
-      </nav>
+      </>
+    ) : (
+      <>
+        <button
+          onClick={() => setShowAuth(true)}
+          style={{padding:"10px 20px",borderRadius:12,border:"1px solid #1e293b",cursor:"pointer",background:"transparent",color:"#94a3b8",fontWeight:700,fontSize:14}}
+        >
+          Sign In
+        </button>
+        <button
+          onClick={() => router.push("/draft")}
+          style={{padding:"10px 24px",borderRadius:12,border:"none",cursor:"pointer",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",fontWeight:700,fontSize:14,display:"flex",alignItems:"center",gap:6}}
+        >
+          Launch App <ChevronRight size={16}/>
+        </button>
+      </>
+    )}
+  </div>
+</nav>
 
       {/* Hero */}
       <div style={{textAlign:"center",padding:"80px 20px 60px"}}>
@@ -112,6 +161,7 @@ export default function LandingPage() {
       <div style={{textAlign:"center",padding:"20px",borderTop:"1px solid #1e293b",color:"#334155",fontSize:13}}>
         © {new Date().getFullYear()} Grid Iron · Fantasy Football Rankings & Draft Tools
       </div>
+      {showAuth && <AuthModal C={{modalBg:"#1e293b",border:"#334155",btnBg:"#0f172a",inputBg:"#0f172a",textPri:"#f1f5f9",textSec:"#94a3b8"}} onClose={() => setShowAuth(false)} onSuccess={() => setShowAuth(false)}/>}
     </div>
   );
 }

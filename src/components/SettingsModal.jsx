@@ -1,7 +1,7 @@
 import { Settings } from "lucide-react";
 import { btn } from "@/utils/styleHelpers";
 
-export default function SettingsModal({ C, budget, setBudget, numTeams, setNumTeams, onClose, showSettings }) {
+export default function SettingsModal({ C, budget, setBudget, numTeams, setNumTeams, onClose, showSettings, onSave }) {
   if (!C || !showSettings) return null;
 
   return (
@@ -50,13 +50,12 @@ export default function SettingsModal({ C, budget, setBudget, numTeams, setNumTe
           </div>
 
           <button
-            onClick={onClose}
-            style={{padding:"12px",borderRadius:12,border:"none",cursor:"pointer",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",fontWeight:700,fontSize:14}}
+            onClick={() => { onSave?.(); onClose(); }}
+            style={{padding:"12px",borderRadius:12,border:"none",cursor:"pointer",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",fontWeight:700,fontSize:14,width:"100%"}}
           >
             Save Settings
           </button>
         </div>
       </div>
     </div>
-  );
-}
+  )}
