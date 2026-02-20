@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Search, ClipboardList, Trash2, RotateCcw } from "lucide-react";
 import { pc } from "@/constants/theme";
 import { btn, smallBtn, slotBtn, posBtn } from "@/utils/styleHelpers";
+import useWindowSize from "@/hooks/useWindowSize";
 
 export default function DraftBoard({
   C, players, rankType,
@@ -26,6 +27,7 @@ export default function DraftBoard({
   pickInfo,
 }) {
   const [boardTab, setBoardTab] = useState("draft");
+  const { isMobile } = useWindowSize();
   const isAuction = draftType === "auction";
   const IDP_POS = ["DL","LB","DB"];
   const draftPositions = idpOn
@@ -194,7 +196,7 @@ export default function DraftBoard({
 
       {/* ── DRAFT TAB ── */}
       {(boardTab === "draft" || isAuction) && (
-        <div style={{display:"grid",gridTemplateColumns:"1fr 340px",gap:20}}>
+        <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 340px",gap:20}}>
 
           {/* Left — available players */}
           <div style={{background:C.cardBg,border:"1px solid "+C.border,borderRadius:16,overflow:"hidden"}}>
@@ -214,7 +216,7 @@ export default function DraftBoard({
               </div>
             </div>
 
-            <div style={{maxHeight:500,overflowY:"auto"}}>
+            <div style={{maxHeight:isMobile?300:500,overflowY:"auto"}}>
               {(isAuction ? auctAvail : availPlayers).map(player => {
                 const pts = rankType === "dynasty" ? player.dynastyPoints : player.redraftPoints;
                 return (
