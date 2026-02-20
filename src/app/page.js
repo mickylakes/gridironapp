@@ -1,243 +1,117 @@
 "use client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { TrendingUp, Zap, Clock, Users, Star, Shield, ChevronRight } from "lucide-react";
 
-import { useState, useEffect } from "react";
-import { TrendingUp, Users, Star, Sun, Moon, Settings, ClipboardList, Database } from "lucide-react";
-import { DARK, LIGHT } from "@/constants/theme";
-import { buildPlayers, SAMPLES } from "@/utils/players";
-import { tabBtn } from "@/utils/styleHelpers";
-import RankingsTab from "@/components/RankingsTab";
-import DraftBoard from "@/components/DraftBoard";
-import PlayerModal from "@/components/PlayerModal";
-import SettingsModal from "@/components/SettingsModal";
-import useWindowSize from "@/hooks/useWindowSize";
+export default function LandingPage() {
+  const router = useRouter();
+  const [hoveredFeature, setHoveredFeature] = useState(null);
 
-export default function Home() {
-  const [players, setPlayers]     = useState([]);
-  const [loading, setLoading]     = useState(true);
-  const [selPos, setSelPos]       = useState("ALL");
-  const [search, setSearch]       = useState("");
-  const [rankType, setRankType]   = useState("redraft");
-  const [apiStatus, setApiStatus] = useState({});
-  const [favorites, setFavorites] = useState(new Set());
-  const [theme, setTheme]         = useState("dark");
-  const [showFavs, setShowFavs]   = useState(false);
-  const [selPlayer, setSelPlayer] = useState(null);
-  const [budget, setBudget]       = useState(200);
-  const [numTeams, setNumTeams]   = useState(12);
-  const [showSettings, setShowSettings] = useState(false);
-  const [activeTab, setActiveTab]       = useState("rankings");
-  const [scoring, setScoring] = useState("ppr");
-  const { isMobile, isTablet } = useWindowSize();
-
-  // Draft state
-  const [draftStarted, setDraftStarted] = useState(false);
-  const [draftType, setDraftType]       = useState("snake");
-  const [draftTeams, setDraftTeams]     = useState(12);
-  const [draftRounds, setDraftRounds]   = useState(15);
-  const [yourSlot, setYourSlot]         = useState(1);
-  const [picks, setPicks]               = useState({});
-  const [pickIndex, setPickIndex]       = useState(0);
-  const [draftSearch, setDraftSearch]   = useState("");
-  const [draftPos, setDraftPos]         = useState("ALL");
-  const [idpOn, setIdpOn]               = useState(false);
-  const [teamNames, setTeamNames]       = useState(() => Array.from({length:16},(_,i) => "Team "+(i+1)));
-
-  // Auction state
-  const [auctBudget, setAuctBudget] = useState(200);
-  const [auctNom, setAuctNom]       = useState(1);
-  const [auctBids, setAuctBids]     = useState({});
-  const [nomPlayer, setNomPlayer]   = useState(null);
-  const [curBid, setCurBid]         = useState(1);
-  const [bidTeam, setBidTeam]       = useState(1);
-
-  const C = theme === "dark" ? DARK : LIGHT;
-  const dk = theme === "dark";
-  const totalPicks = draftTeams * draftRounds;
-
-  function pickInfo(idx) {
-    const round = Math.floor(idx/draftTeams)+1;
-    const pos   = idx % draftTeams;
-    const team  = (draftType === "snake" && round%2===0) ? (draftTeams-pos) : (pos+1);
-    return {round, team};
-  }
-
-  function toggleFav(id) {
-    setFavorites(prev => { const n=new Set(prev); n.has(id)?n.delete(id):n.add(id); return n; });
-  }
-
-  function draftPlayer(player) {
-    if (pickIndex >= totalPicks) return;
-    setPicks(prev => ({...prev, [pickIndex]: player}));
-    setPickIndex(prev => prev+1);
-  }
-
-  function undoPick() {
-    if (pickIndex === 0) return;
-    setPicks(prev => { const n={...prev}; delete n[pickIndex-1]; return n; });
-    setPickIndex(prev => prev-1);
-  }
-
-  function resetDraft() {
-    setPicks({}); setPickIndex(0); setDraftStarted(false);
-    setAuctBids({}); setNomPlayer(null); setAuctNom(1); setCurBid(1); setBidTeam(1);
-  }
-
-  function confirmBid() {
-    if (!nomPlayer || curBid < 1) return;
-    setAuctBids(prev => ({...prev, [nomPlayer.id]: {team:bidTeam, amount:curBid}}));
-    setNomPlayer(null); setCurBid(1);
-    setAuctNom(prev => (prev % draftTeams) + 1);
-  }
-
-  useEffect(() => {
-    async function load() {
-      setLoading(true);
-      let raw = [];
-      const status = {};
-      try {
-        const res = await fetch("https://api.sleeper.app/v1/players/nfl");
-        if (res.ok) {
-          const data = await res.json();
-          raw = Object.values(data).filter(p => p.active && p.position);
-          status.sleeper = {success:true, count:raw.length};
-        } else throw new Error();
-      } catch {
-        raw = SAMPLES;
-        status.sample = {success:true, count:raw.length};
-      }
-      setApiStatus(status);
-      setPlayers(buildPlayers(raw, budget, scoring));
-      setLoading(false);
-    }
-    load();
-  }, []);
-
-  if (loading) {
-    return (
-      <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:C.loadBg}}>
-        <div style={{textAlign:"center"}}>
-          <div style={{width:64,height:64,border:"4px solid #6366f1",borderTopColor:"transparent",borderRadius:"50%",animation:"spin 1s linear infinite",margin:"0 auto"}}/>
-          <p style={{marginTop:16,color:"#818cf8",fontFamily:"monospace",letterSpacing:"0.1em"}}>LOADING RANKINGS...</p>
-        </div>
-        <style>{"@keyframes spin { to { transform: rotate(360deg); } }"}</style>
-      </div>
-    );
-  }
+  const features = [
+    { icon: <TrendingUp size={28} color="#818cf8"/>, title: "Live Rankings", desc: "PPR, Half PPR, and Standard rankings updated in real time. Filter by position, search players, and export to CSV." },
+    { icon: <Zap size={28} color="#34d399"/>, title: "Mock Draft Simulator", desc: "Snake, linear, and auction drafts with customizable teams, rounds, and pick slots. Practice before your real draft." },
+    { icon: <Clock size={28} color="#f472b6"/>, title: "Dynasty Rankings", desc: "Age and experience-adjusted dynasty rankings to help you build a championship roster for years to come." },
+    { icon: <Users size={28} color="#fbbf24"/>, title: "Auction Tools", desc: "Auction draft simulator with budget tracking, nomination flow, and per-team spending breakdowns." },
+    { icon: <Star size={28} color="#f59e0b"/>, title: "Favorites & Tiers", desc: "Star your favorite players, view tier breakdowns, and get projected auction values for every player." },
+    { icon: <Shield size={28} color="#06b6d4"/>, title: "IDP Support", desc: "Full individual defensive player support including DL, LB, and DB rankings and draft tools." },
+  ];
 
   return (
-    <div style={{minHeight:"100vh",background:C.pageBg,color:C.textPri,fontFamily:"system-ui,sans-serif"}}>
+    <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#0f172a 0%,#1e1b4b 50%,#0f172a 100%)",color:"#f1f5f9",fontFamily:"system-ui,sans-serif"}}>
 
-      {/* Fixed buttons */}
-      <button onClick={() => setTheme(dk?"light":"dark")}
-        style={{position:"fixed",top:16,right:16,zIndex:50,padding:"10px",borderRadius:12,border:"none",cursor:"pointer",background:C.themeBtnBg,color:C.themeBtnCol,boxShadow:"0 2px 8px rgba(0,0,0,0.2)"}}>
-        {dk ? <Sun size={18}/> : <Moon size={18}/>}
-      </button>
-      <button onClick={() => setShowSettings(true)}
-        style={{position:"fixed",top:16,right:64,zIndex:50,padding:"10px",borderRadius:12,border:"none",cursor:"pointer",background:C.themeBtnBg,color:C.settBtnCol,boxShadow:"0 2px 8px rgba(0,0,0,0.2)"}}>
-        <Settings size={18}/>
-      </button>
-
-      <div style={{maxWidth:1280,margin:"0 auto",padding:"32px 16px"}}>
-
-        {/* Header */}
-<div style={{textAlign:"center",marginBottom:32}}>
-  <div style={{display:"inline-flex",alignItems:"center",gap:12,marginBottom:8}}>
-    <TrendingUp size={isMobile?24:40} color="#818cf8"/>
-    <h1 style={{fontSize:isMobile?32:52,fontWeight:900,margin:0,background:"linear-gradient(90deg,#818cf8,#c084fc,#f472b6)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",letterSpacing:"-0.05em"}}>GRID IRON</h1>
-  </div>
-  <p style={{color:C.textSec,fontFamily:"monospace",fontSize:isMobile?11:14,letterSpacing:"0.05em"}}>{new Date().getFullYear()} Fantasy Football Rankings</p>
-  <div style={{display:"flex",justifyContent:"center",gap:8,marginTop:8,flexWrap:"wrap"}}>
-    <span style={{display:"flex",alignItems:"center",gap:4,color:C.textSec,fontSize:13}}><Users size={14}/> {players.length} Players</span>
-    {favorites.size > 0 && <span style={{display:"flex",alignItems:"center",gap:4,color:"#fbbf24",fontSize:13}}><Star size={14} fill="#fbbf24"/> {favorites.size} Favorites</span>}
-  </div>
-  <div style={{display:"flex",justifyContent:"center",gap:8,marginTop:8,flexWrap:"wrap"}}>
-    {Object.entries(apiStatus).map(([src,st]) => (
-      <span key={src} style={{padding:"2px 10px",borderRadius:20,fontSize:12,fontFamily:"monospace",background:st.success?"rgba(16,185,129,0.15)":"rgba(239,68,68,0.15)",color:st.success?"#34d399":"#f87171",border:"1px solid "+(st.success?"rgba(16,185,129,0.3)":"rgba(239,68,68,0.3)")}}>
-        <Database size={10} style={{display:"inline",marginRight:4}}/>
-        {src.toUpperCase()}: {st.success ? st.count+" players" : st.error}
-      </span>
-    ))}
-  </div>
-</div>
-
-        {/* Scoring format selector */}
-<div style={{display:"flex",justifyContent:"center",marginBottom:16}}>
-  <div style={{display:"inline-flex",background:C.cardBg,border:"1px solid "+C.border,borderRadius:14,padding:4,gap:4}}>
-    {[
-      {key:"ppr",   label:"PPR"},
-      {key:"half",  label:"Half PPR"},
-      {key:"std",   label:"Standard"},
-    ].map(s => (
-      <button key={s.key} onClick={() => {
-  setScoring(s.key);
-  setPlayers(prev => buildPlayers(prev.map(p => ({
-    player_id: p.id, first_name: p.name.split(" ")[0],
-    last_name: p.name.split(" ").slice(1).join(" "),
-    position: p.position, team: p.team, age: p.age,
-    number: p.number, years_exp: p.yearsExp, active: true
-  })), budget, s.key));
-}}
-  style={{...tabBtn(scoring===s.key,"linear-gradient(135deg,#6366f1,#8b5cf6)",C), padding:isMobile?"8px 12px":"10px 28px", fontSize:isMobile?11:13}}>
-  {s.label}
-</button>
-    ))}
-  </div>
-</div>
-
-        {/* Tab bar */}
-        <div style={{display:"flex",justifyContent:"center",marginBottom:32}}>
-          <div style={{display:"inline-flex",background:C.cardBg,border:"1px solid "+C.border,borderRadius:14,padding:4}}>
-            <button onClick={() => setActiveTab("rankings")} style={tabBtn(activeTab==="rankings","linear-gradient(135deg,#6366f1,#8b5cf6)",C)}>
-              <TrendingUp size={15}/> RANKINGS
-            </button>
-            <button onClick={() => setActiveTab("draftboard")} style={tabBtn(activeTab==="draftboard","linear-gradient(135deg,#10b981,#0d9488)",C)}>
-              <ClipboardList size={15}/> DRAFT BOARD
-              {draftStarted && draftType !== "auction" && (
-                <span style={{padding:"1px 7px",borderRadius:20,fontSize:11,background:"rgba(16,185,129,0.2)",color:"#34d399",border:"1px solid rgba(16,185,129,0.3)"}}>{pickIndex}/{totalPicks}</span>
-              )}
-            </button>
-          </div>
+      {/* Nav */}
+      <nav style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"20px 40px",borderBottom:"1px solid #1e293b"}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <TrendingUp size={24} color="#818cf8"/>
+          <span style={{fontSize:22,fontWeight:900,background:"linear-gradient(90deg,#818cf8,#c084fc,#f472b6)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>GRID IRON</span>
         </div>
+        <button
+          onClick={() => router.push("/app")}
+          style={{padding:"10px 24px",borderRadius:12,border:"none",cursor:"pointer",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",fontWeight:700,fontSize:14,display:"flex",alignItems:"center",gap:6}}
+        >
+          Launch App <ChevronRight size={16}/>
+        </button>
+      </nav>
 
-        {/* Tab content */}
-        {activeTab === "rankings" && (
-          <RankingsTab
-            C={C} players={players} rankType={rankType} setRankType={setRankType}
-            selPos={selPos} setSelPos={setSelPos} search={search} setSearch={setSearch}
-            showFavs={showFavs} setShowFavs={setShowFavs} favorites={favorites}
-            toggleFav={toggleFav} setSelPlayer={setSelPlayer} budget={budget}
-          />
-        )}
-
-        {activeTab === "draftboard" && (
-          <DraftBoard
-            C={C} players={players} rankType={rankType}
-            draftStarted={draftStarted} setDraftStarted={setDraftStarted}
-            draftType={draftType} setDraftType={setDraftType}
-            draftTeams={draftTeams} setDraftTeams={setDraftTeams}
-            draftRounds={draftRounds} setDraftRounds={setDraftRounds}
-            yourSlot={yourSlot} setYourSlot={setYourSlot}
-            picks={picks} pickIndex={pickIndex} totalPicks={totalPicks}
-            draftSearch={draftSearch} setDraftSearch={setDraftSearch}
-            draftPos={draftPos} setDraftPos={setDraftPos}
-            idpOn={idpOn} setIdpOn={setIdpOn}
-            teamNames={teamNames} setTeamNames={setTeamNames}
-            auctBudget={auctBudget} setAuctBudget={setAuctBudget}
-            auctBids={auctBids} nomPlayer={nomPlayer} setNomPlayer={setNomPlayer}
-            curBid={curBid} setCurBid={setCurBid}
-            bidTeam={bidTeam} setBidTeam={setBidTeam}
-            auctNom={auctNom}
-            draftPlayer={draftPlayer} undoPick={undoPick} resetDraft={resetDraft}
-            confirmBid={confirmBid} pickInfo={pickInfo}
-          />
-        )}
+      {/* Hero */}
+      <div style={{textAlign:"center",padding:"80px 20px 60px"}}>
+        <div style={{display:"inline-flex",alignItems:"center",gap:8,padding:"6px 16px",borderRadius:20,background:"rgba(99,102,241,0.1)",border:"1px solid rgba(99,102,241,0.3)",marginBottom:24}}>
+          <Zap size={14} color="#818cf8"/>
+          <span style={{fontSize:13,color:"#818cf8",fontFamily:"monospace"}}>2025 Fantasy Football Season</span>
+        </div>
+        <h1 style={{fontSize:"clamp(36px,7vw,80px)",fontWeight:900,margin:"0 0 20px",background:"linear-gradient(90deg,#818cf8,#c084fc,#f472b6)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",letterSpacing:"-0.03em",lineHeight:1.1}}>
+          Win Your Fantasy<br/>Football League
+        </h1>
+        <p style={{fontSize:"clamp(16px,2.5vw,20px)",color:"#94a3b8",maxWidth:600,margin:"0 auto 40px",lineHeight:1.6}}>
+          Professional rankings, mock draft simulator, auction tools, and dynasty analysis — everything you need to dominate your league.
+        </p>
+        <div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap"}}>
+          <button
+            onClick={() => router.push("/app")}
+            style={{padding:"16px 36px",borderRadius:14,border:"none",cursor:"pointer",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",fontWeight:800,fontSize:16,display:"flex",alignItems:"center",gap:8,boxShadow:"0 8px 32px rgba(99,102,241,0.4)"}}
+          >
+            Start For Free <ChevronRight size={18}/>
+          </button>
+          <button
+            onClick={() => router.push("/app")}
+            style={{padding:"16px 36px",borderRadius:14,border:"1px solid #1e293b",cursor:"pointer",background:"transparent",color:"#94a3b8",fontWeight:700,fontSize:16}}
+          >
+            View Rankings
+          </button>
+        </div>
+        <p style={{marginTop:16,fontSize:13,color:"#475569"}}>Free to use · No account required</p>
       </div>
 
-      {/* Modals */}
-      <PlayerModal player={selPlayer} favorites={favorites} toggleFav={toggleFav} onClose={() => setSelPlayer(null)}/>
-      <SettingsModal C={C} budget={budget} setBudget={setBudget} numTeams={numTeams} setNumTeams={setNumTeams} onClose={() => setShowSettings(false)} showSettings={showSettings}/>
+      {/* Stats bar */}
+      <div style={{display:"flex",justifyContent:"center",gap:0,flexWrap:"wrap",borderTop:"1px solid #1e293b",borderBottom:"1px solid #1e293b",margin:"0 0 80px"}}>
+        {[
+          {value:"1,000+", label:"Players Ranked"},
+          {value:"3", label:"Scoring Formats"},
+          {value:"Snake & Auction", label:"Draft Types"},
+          {value:"Free", label:"Always"},
+        ].map((stat, i) => (
+          <div key={i} style={{padding:"28px 40px",textAlign:"center",borderRight:"1px solid #1e293b"}}>
+            <div style={{fontSize:28,fontWeight:900,background:"linear-gradient(90deg,#818cf8,#c084fc)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>{stat.value}</div>
+            <div style={{fontSize:13,color:"#64748b",marginTop:4}}>{stat.label}</div>
+          </div>
+        ))}
+      </div>
 
-      <style>{"@keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.5} } *{box-sizing:border-box} body{margin:0}"}</style>
+      {/* Features */}
+      <div style={{maxWidth:1100,margin:"0 auto",padding:"0 20px 80px"}}>
+        <h2 style={{textAlign:"center",fontSize:"clamp(24px,4vw,40px)",fontWeight:900,marginBottom:48}}>Everything You Need to Win</h2>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:20}}>
+          {features.map((f, i) => (
+            <div
+              key={i}
+              onMouseEnter={() => setHoveredFeature(i)}
+              onMouseLeave={() => setHoveredFeature(null)}
+              style={{padding:28,borderRadius:16,border:"1px solid",borderColor:hoveredFeature===i?"rgba(99,102,241,0.4)":"#1e293b",background:hoveredFeature===i?"rgba(99,102,241,0.05)":"rgba(15,23,42,0.4)",transition:"all 0.2s",cursor:"default"}}
+            >
+              <div style={{marginBottom:14}}>{f.icon}</div>
+              <h3 style={{margin:"0 0 8px",fontSize:18,fontWeight:800}}>{f.title}</h3>
+              <p style={{margin:0,color:"#64748b",fontSize:14,lineHeight:1.6}}>{f.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* CTA */}
+      <div style={{textAlign:"center",padding:"60px 20px 80px",borderTop:"1px solid #1e293b"}}>
+        <h2 style={{fontSize:"clamp(24px,4vw,40px)",fontWeight:900,margin:"0 0 16px"}}>Ready to Dominate Your League?</h2>
+        <p style={{color:"#64748b",marginBottom:32,fontSize:16}}>No signup required. Jump straight into the rankings.</p>
+        <button
+          onClick={() => router.push("/app")}
+          style={{padding:"16px 48px",borderRadius:14,border:"none",cursor:"pointer",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",fontWeight:800,fontSize:18,boxShadow:"0 8px 32px rgba(99,102,241,0.4)"}}
+        >
+          Launch Grid Iron Free
+        </button>
+      </div>
+
+      {/* Footer */}
+      <div style={{textAlign:"center",padding:"20px",borderTop:"1px solid #1e293b",color:"#334155",fontSize:13}}>
+        © {new Date().getFullYear()} Grid Iron · Fantasy Football Rankings & Draft Tools
+      </div>
     </div>
   );
 }
