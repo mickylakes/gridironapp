@@ -28,55 +28,7 @@ export const SAMPLES = [
   {player_id:"9002",first_name:"DAL",last_name:"Defense",position:"DEF",team:"DAL",age:28,number:"0",years_exp:5,active:true},
   {player_id:"9003",first_name:"BAL",last_name:"Defense",position:"DEF",team:"BAL",age:28,number:"0",years_exp:5,active:true},
   {player_id:"9004",first_name:"BUF",last_name:"Defense",position:"DEF",team:"BUF",age:28,number:"0",years_exp:5,active:true},
-  {player_id:"9101",first_name:"Myles",last_name:"Garrett",position:"DE",team:"CLE",age:29,number:"95",years_exp:7,active:true},
-  {player_id:"9102",first_name:"Micah",last_name:"Parsons",position:"LB",team:"DAL",age:25,number:"11",years_exp:3,active:true},
-  {player_id:"9103",first_name:"Roquan",last_name:"Smith",position:"LB",team:"BAL",age:27,number:"0",years_exp:6,active:true},
-  {player_id:"9104",first_name:"Jalen",last_name:"Ramsey",position:"CB",team:"LAR",age:30,number:"5",years_exp:8,active:true},
 ];
-
-// Consensus projected points (PPR baseline, 2024-25)
-const PROJ = {
-  // QBs
-  "4866": { ppr:380, half:375, std:370, dyn:410 },
-  "4881": { ppr:372, half:367, std:362, dyn:400 },
-  "6797": { ppr:365, half:358, std:350, dyn:395 },
-  "5850": { ppr:348, half:340, std:332, dyn:370 },
-  "7553": { ppr:340, half:333, std:326, dyn:355 },
-  "6770": { ppr:330, half:324, std:318, dyn:320 },
-  // RBs
-  "4984": { ppr:320, half:298, std:276, dyn:310 },
-  "7562": { ppr:295, half:275, std:255, dyn:330 },
-  "8137": { ppr:290, half:270, std:250, dyn:340 },
-  "6945": { ppr:265, half:248, std:231, dyn:255 },
-  "7601": { ppr:285, half:265, std:245, dyn:335 },
-  "7610": { ppr:280, half:260, std:240, dyn:325 },
-  // WRs
-  "7547": { ppr:310, half:285, std:260, dyn:330 },
-  "7565": { ppr:305, half:280, std:255, dyn:325 },
-  "6794": { ppr:295, half:270, std:245, dyn:270 },
-  "5012": { ppr:260, half:238, std:216, dyn:235 },
-  "7578": { ppr:285, half:262, std:239, dyn:305 },
-  "7596": { ppr:270, half:248, std:226, dyn:300 },
-  // TEs
-  "6787": { ppr:245, half:232, std:219, dyn:215 },
-  "7568": { ppr:210, half:198, std:186, dyn:255 },
-  "6804": { ppr:205, half:193, std:181, dyn:215 },
-  "7602": { ppr:215, half:203, std:191, dyn:260 },
-  // Ks
-  "8200": { ppr:145, half:145, std:145, dyn:130 },
-  "4046": { ppr:150, half:150, std:150, dyn:125 },
-  "7603": { ppr:143, half:143, std:143, dyn:128 },
-  // DEFs
-  "9001": { ppr:155, half:155, std:155, dyn:140 },
-  "9002": { ppr:148, half:148, std:148, dyn:133 },
-  "9003": { ppr:152, half:152, std:152, dyn:137 },
-  "9004": { ppr:150, half:150, std:150, dyn:135 },
-  // IDP
-  "9101": { ppr:165, half:165, std:165, dyn:170 },
-  "9102": { ppr:170, half:170, std:170, dyn:180 },
-  "9103": { ppr:155, half:155, std:155, dyn:160 },
-  "9104": { ppr:145, half:145, std:145, dyn:148 },
-};
 
 export function fantasyPos(p) {
   if (["QB","RB","WR","TE","K"].includes(p.position)) return p.position;
@@ -87,48 +39,18 @@ export function fantasyPos(p) {
   return null;
 }
 
-// Fallback projected points for players not in PROJ table (Sleeper API players)
-export function estimatePoints(pos, scoring, age, exp) {
-  const base = {
-    QB:  { ppr:260, half:255, std:250, dyn:270 },
-    RB:  { ppr:200, half:185, std:170, dyn:210 },
-    WR:  { ppr:185, half:170, std:155, dyn:195 },
-    TE:  { ppr:140, half:130, std:120, dyn:145 },
-    K:   { ppr:120, half:120, std:120, dyn:100 },
-    DEF: { ppr:125, half:125, std:125, dyn:110 },
-    DL:  { ppr:130, half:130, std:130, dyn:135 },
-    LB:  { ppr:140, half:140, std:140, dyn:145 },
-    DB:  { ppr:120, half:120, std:120, dyn:125 },
-  }[pos] || { ppr:100, half:100, std:100, dyn:100 };
-
-  let pts = base[scoring] || base.ppr;
-
-  // Age/experience modifier
-  const ageMod = age < 24 ? 1.05 : age < 27 ? 1.0 : age < 30 ? 0.95 : 0.85;
-  const expMod = exp < 2 ? 0.92 : exp < 5 ? 1.0 : exp < 9 ? 0.97 : 0.90;
-
-  // Dynasty modifier
-  if (scoring === "dyn") {
-    const dynAge = age < 24 ? 1.2 : age < 27 ? 1.0 : age < 30 ? 0.82 : 0.65;
-    return Math.max(50, Math.round(pts * dynAge * expMod));
-  }
-
-  return Math.max(50, Math.round(pts * ageMod * expMod));
-}
-
-export function getTier(pos, pts, scoring) {
+export function getTier(pos, pts) {
   const thresholds = {
-    QB:  [360, 330, 300, 270],
-    RB:  [280, 240, 200, 160],
-    WR:  [270, 230, 190, 150],
-    TE:  [200, 170, 140, 110],
-    K:   [145, 135, 125, 115],
-    DEF: [150, 140, 130, 120],
-    DL:  [160, 145, 130, 115],
-    LB:  [165, 150, 135, 120],
-    DB:  [145, 132, 119, 106],
-  }[pos] || [200, 160, 130, 100];
-
+    QB:  [360, 320, 280, 240],
+    RB:  [280, 220, 160, 110],
+    WR:  [270, 210, 150, 100],
+    TE:  [180, 140, 100, 70],
+    K:   [145, 130, 115, 100],
+    DEF: [150, 135, 120, 105],
+    DL:  [160, 140, 120, 100],
+    LB:  [165, 145, 125, 105],
+    DB:  [145, 125, 105, 85],
+  }[pos] || [200, 160, 120, 80];
   if (pts >= thresholds[0]) return 1;
   if (pts >= thresholds[1]) return 2;
   if (pts >= thresholds[2]) return 3;
@@ -136,30 +58,66 @@ export function getTier(pos, pts, scoring) {
   return 5;
 }
 
-export function auctionVal(pts, pos, budget) {
-  const sc = {QB:0.9,RB:1.4,WR:1.0,TE:1.2,K:0.2,DEF:0.3,DL:0.4,LB:0.5,DB:0.4}[pos] || 1.0;
-  return Math.max(1, Math.round(Math.min((pts/10)*sc*(budget/200), budget*0.35)));
+export function auctionVal(pts, pos, budget, totalTeams) {
+  // Position scarcity multipliers
+  const sc = {
+    QB:  0.85, RB: 1.4, WR: 1.1, TE: 1.15,
+    K:   0.2,  DEF: 0.3, DL: 0.4, LB: 0.5, DB: 0.4
+  }[pos] || 1.0;
+
+  // Scale by league size — more teams = more value for depth
+  const leagueMod = totalTeams ? totalTeams / 12 : 1;
+
+  return Math.max(1, Math.round(
+    Math.min((pts / 10) * sc * (budget / 200) * leagueMod, budget * 0.4)
+  ));
 }
 
 export function dynastyAuctionVal(pts, pos, age, budget) {
-  const base = auctionVal(pts, pos, budget);
+  const base = auctionVal(pts, pos, budget, 12);
   const am = age < 24 ? 1.5 : age < 27 ? 1.2 : age < 29 ? 1.0 : age < 31 ? 0.7 : 0.4;
-  const pm = {QB:1.1,RB:0.8,WR:1.0,TE:1.0,K:0.3,DEF:0.4}[pos] || 1.0;
-  return Math.max(1, Math.round(base*am*pm));
+  const pm = {QB:1.1, RB:0.8, WR:1.0, TE:1.0, K:0.3, DEF:0.4}[pos] || 1.0;
+  return Math.max(1, Math.round(base * am * pm));
 }
 
-export function buildPlayers(raw, budget, scoring = "ppr") {
+// Fallback estimator for players with no stats data
+export function estimatePoints(pos, scoring, age, exp) {
+  const base = {
+    QB:  { ppr:240, half:235, std:230 },
+    RB:  { ppr:150, half:138, std:126 },
+    WR:  { ppr:140, half:128, std:116 },
+    TE:  { ppr:100, half:92,  std:84  },
+    K:   { ppr:110, half:110, std:110 },
+    DEF: { ppr:115, half:115, std:115 },
+    DL:  { ppr:120, half:120, std:120 },
+    LB:  { ppr:130, half:130, std:130 },
+    DB:  { ppr:110, half:110, std:110 },
+  }[pos] || { ppr:80, half:80, std:80 };
+
+  let pts = base[scoring] || base.ppr;
+  const ageMod = age < 24 ? 1.05 : age < 27 ? 1.0 : age < 30 ? 0.92 : 0.82;
+  const expMod = exp < 2 ? 0.88 : exp < 5 ? 1.0 : exp < 9 ? 0.95 : 0.88;
+  return Math.max(30, Math.round(pts * ageMod * expMod));
+}
+
+export function buildPlayers(raw, budget, scoring = "ppr", statsData = {}, totalTeams = 12) {
+  const scoreKey = scoring === "std" ? "pts_std" : scoring === "half" ? "pts_half_ppr" : "pts_ppr";
+  const dynastyKey = "pts_half_ppr"; // dynasty uses half ppr as base
+
   return raw.map(p => {
     const pos = fantasyPos(p);
     if (!pos) return null;
 
-    const proj = PROJ[p.player_id];
-    const rpts = proj
-      ? proj[scoring]
+    const stats = statsData[p.player_id];
+
+    // Use real stats if available, otherwise estimate
+    const rpts = stats && stats[scoreKey] && stats[scoreKey] > 20
+      ? Math.round(stats[scoreKey])
       : estimatePoints(pos, scoring, p.age||25, p.years_exp||0);
-    const dpts = proj
-      ? proj.dyn
-      : estimatePoints(pos, "dyn", p.age||25, p.years_exp||0);
+
+    const dpts = stats && stats[dynastyKey] && stats[dynastyKey] > 20
+      ? Math.round(stats[dynastyKey] * (p.age < 24 ? 1.2 : p.age < 27 ? 1.0 : p.age < 30 ? 0.85 : 0.65))
+      : estimatePoints(pos, "half", p.age||25, p.years_exp||0);
 
     return {
       id: p.player_id,
@@ -171,10 +129,19 @@ export function buildPlayers(raw, budget, scoring = "ppr") {
       yearsExp: p.years_exp||0,
       redraftPoints: rpts,
       dynastyPoints: dpts,
-      tier: getTier(pos, rpts, scoring),
-      auctionValue: auctionVal(rpts, pos, budget),
+      tier: getTier(pos, rpts),
+      auctionValue: auctionVal(rpts, pos, budget, totalTeams),
       dynastyAuctionValue: dynastyAuctionVal(dpts, pos, p.age||25, budget),
+      hasRealStats: !!(stats && stats[scoreKey] && stats[scoreKey] > 20),
       scoring,
     };
-  }).filter(Boolean).filter(p => p.team && p.team !== "FA" && p.team !== "");
+  }).filter(Boolean)
+   .filter(p => p.team && p.team !== "FA" && p.team !== "")
+.filter(p => {
+  if (!p.hasRealStats) return true;
+  const minPts = {
+    QB: 150, RB: 50, WR: 50, TE: 40, K: 60, DEF: 60, DL: 25, LB: 25, DB: 25
+  }[p.position] || 30;
+  return p.redraftPoints >= minPts;
+});
 }
