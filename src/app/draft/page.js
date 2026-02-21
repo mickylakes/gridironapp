@@ -454,12 +454,14 @@ export default function Home() {
             C={C}
             players={players}
             user={user}
+            capCeiling={capCeiling}
+            setCapCeiling={setCapCeiling}
           />
         )}
       </div>
 
       {/* Modals */}
-      <PlayerModal C={C} player={selPlayer} favorites={favorites} toggleFav={toggleFav} onClose={() => setSelPlayer(null)}/>
+      <PlayerModal C={C} player={selPlayer} favorites={favorites} toggleFav={toggleFav} onClose={() => setSelPlayer(null)} capCeiling={capCeiling}/>
       <SettingsModal
         C={C} budget={budget} setBudget={setBudget}
         numTeams={numTeams} setNumTeams={setNumTeams}

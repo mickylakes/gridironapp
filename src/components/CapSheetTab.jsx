@@ -385,7 +385,7 @@ function TeamCapCard({ C, team, contracts, capCeiling, isYourTeam, onAddContract
 }
 
 // ─── Main CapSheetTab ─────────────────────────────────────────────────────────
-export default function CapSheetTab({ C, players, user }) {
+export default function CapSheetTab({ C, players, user, capCeiling: initialCeiling, setCapCeiling: syncCeiling }) {
   const { isMobile } = useWindowSize();
 
   // Settings
@@ -460,6 +460,7 @@ export default function CapSheetTab({ C, players, user }) {
         updated_at: new Date().toISOString(),
       }, { onConflict: "user_id" });
       if (error) console.error("saveSettings error:", error);
+      else if (syncCeiling) syncCeiling(newCeiling);
     } catch (err) {
       console.error("saveSettings exception:", err);
     }

@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { Star, TrendingUp, ShieldAlert, Loader, User } from "lucide-react";
 import { pc, ti } from "@/constants/theme";
-import { calcIdpPoints, IDP_POSITIONS } from "@/utils/players";
+import { calcIdpPoints, IDP_POSITIONS, capSalaryValue, capSalaryValueDynasty } from "@/utils/players";
 
 const CURRENT_YEAR = new Date().getFullYear();
 const STATS_YEARS = [
@@ -27,7 +27,7 @@ const SCORING_OPTIONS = [
   { key:"pts_std",      label:"Standard" },
 ];
 
-export default function PlayerModal({ C, player, favorites, toggleFav, onClose }) {
+export default function PlayerModal({ C, player, favorites, toggleFav, onClose, capCeiling = 50_000_000 }) {
   // Store full raw stats object per year so we can re-score on toggle without re-fetching
   const [rawHistory, setRawHistory]         = useState({});
   const [loadingHistory, setLoadingHistory] = useState(false);
@@ -182,6 +182,38 @@ export default function PlayerModal({ C, player, favorites, toggleFav, onClose }
                 </div>
               ))}
             </div>
+
+            {/* Cap Salary Recommendation */}
+            {(() => {
+              const redraftCap = capSalaryValue(player.redraftPoints, player.position, capCeiling);
+              const dynastyCap = capSalaryValueDynasty(player.dynastyPoints, player.position, capCeiling);
+              const redraftPct = Math.min(100, (redraftCap / capCeiling) * 100);
+              const dynastyPct = Math.min(100, (dynastyCap / capCeiling) * 100);
+              const fmt = n => n >= 1_000_000 ? "$" + (n/1_000_000).toFixed(1).replace(/\.0$/,"") + "M" : "$" + Math.round(n/1000) + "K";
+              const barColor = pct => pct > 25 ? "#ef4444" : pct > 15 ? "#f59e0b" : "#10b981";
+              return (
+                <div style={{borderRadius:12,padding:16,border:"1px solid rgba(245,158,11,0.25)",background:"rgba(245,158,11,0.05)"}}>
+                  <div style={{fontSize:11,fontFamily:"monospace",color:"#fbbf24",marginBottom:14,textTransform:"uppercase",letterSpacing:"0.05em"}}>
+                    💰 Cap Salary Recommendation · {fmt(capCeiling)} cap
+                  </div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                    {[
+                      { label:"Redraft Value", val:redraftCap, pct:redraftPct, color:"#34d399" },
+                      { label:"Dynasty Value", val:dynastyCap, pct:dynastyPct, color:"#818cf8" },
+                    ].map(({label, val, pct, color}) => (
+                      <div key={label}>
+                        <div style={{fontSize:10,fontFamily:"monospace",color:C.textSec,marginBottom:6,textTransform:"uppercase",letterSpacing:"0.05em"}}>{label}</div>
+                        <div style={{fontWeight:900,fontSize:22,color}}>{fmt(val)}</div>
+                        <div style={{margin:"8px 0 4px",height:5,borderRadius:3,background:C.trackBg,overflow:"hidden"}}>
+                          <div style={{height:"100%",width:pct+"%",borderRadius:3,background:barColor(pct),transition:"width 0.4s ease"}}/>
+                        </div>
+                        <div style={{fontSize:10,fontFamily:"monospace",color:C.textSec}}>{pct.toFixed(1)}% of cap</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* IDP defensive stat breakdown */}
             {isIdp && idpBreakdown.length > 0 && (
