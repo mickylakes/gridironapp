@@ -157,13 +157,18 @@ async function loadDraft() {
   if (!user) return;
   const supabase = createClient();
   const { data } = await supabase.from("drafts").select("*").eq("user_id", user.id).single();
-  if (data && data.picks && Object.keys(data.picks).length > 0) {
+  if (!data) return;
+  
+  const hasPicks = data.picks && Object.keys(data.picks).length > 0;
+  const hasAuctBids = data.auction_bids && Object.keys(data.auction_bids).length > 0;
+  
+  if (hasPicks || hasAuctBids) {
     setDraftType(data.draft_type);
     setDraftTeams(data.teams);
     setDraftRounds(data.rounds);
     setYourSlot(data.your_slot);
-    setPicks(data.picks);
-    setPickIndex(Object.keys(data.picks).length);
+    setPicks(data.picks || {});
+    setPickIndex(Object.keys(data.picks || {}).length);
     setAuctBids(data.auction_bids || {});
     if (data.settings) {
       setTeamNames(data.settings.teamNames || teamNames);
@@ -214,13 +219,14 @@ async function loadDraft() {
   }
 
   function confirmBid() {
-    if (!nomPlayer || curBid < 1) return;
-    const newBids = {...auctBids, [nomPlayer.id]: {team:bidTeam, amount:curBid}};
-    setAuctBids(newBids);
-    setNomPlayer(null); setCurBid(1);
-    setAuctNom(prev => (prev % draftTeams) + 1);
-    setTimeout(saveDraft, newBids);
-  }
+  if (!nomPlayer || curBid < 1) return;
+  const newBids = {...auctBids, [nomPlayer.id]: {team:bidTeam, amount:curBid}};
+  setAuctBids(newBids);
+  setNomPlayer(null); setCurBid(1);
+  setAuctNom(prev => (prev % draftTeams) + 1);
+  setDraftStarted(true);
+  saveDraft(picks, newBids);
+}
 
   useEffect(() => {
   async function load() {
