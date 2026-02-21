@@ -419,7 +419,10 @@ export default function Home() {
         numTeams={numTeams} setNumTeams={setNumTeams}
         onClose={() => setShowSettings(false)}
         showSettings={showSettings}
-        onSave={() => saveSettings({ theme, scoring, budget, num_teams: numTeams })}
+        onSave={(newBudget, newNumTeams) => {
+          setPlayers(buildPlayers(rawPlayers, newBudget, scoring, statsData, newNumTeams));
+          saveSettings({ theme, scoring, budget: newBudget, num_teams: newNumTeams });
+        }}
       />
       {showAuth && <AuthModal C={C} onClose={() => setShowAuth(false)} onSuccess={() => setShowAuth(false)}/>}
 

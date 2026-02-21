@@ -50,7 +50,7 @@ export default function SettingsModal({ C, budget, setBudget, numTeams, setNumTe
           </div>
 
           <button
-            onClick={() => { onSave?.(); onClose(); }}
+            onClick={() => { onSave?.(budget, numTeams); onClose(); }}
             style={{padding:"12px",borderRadius:12,border:"none",cursor:"pointer",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",fontWeight:700,fontSize:14,width:"100%"}}
           >
             Save Settings
