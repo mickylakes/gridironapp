@@ -413,7 +413,7 @@ export default function Home() {
       </div>
 
       {/* Modals */}
-      <PlayerModal player={selPlayer} favorites={favorites} toggleFav={toggleFav} onClose={() => setSelPlayer(null)}/>
+      <PlayerModal C={C} player={selPlayer} favorites={favorites} toggleFav={toggleFav} onClose={() => setSelPlayer(null)}/>
       <SettingsModal
         C={C} budget={budget} setBudget={setBudget}
         numTeams={numTeams} setNumTeams={setNumTeams}
