@@ -84,9 +84,11 @@ useEffect(() => {
 }, []);
 
 useEffect(() => {
-  if (user) 
+  if (user) {
     loadSettings();
     loadFavorites();
+    loadDraft();
+  }
 }, [user]);
 
 async function handleSignOut() {
@@ -129,6 +131,49 @@ async function loadFavorites() {
   if (data) setFavorites(new Set(data.map(f => f.player_id)));
 }
 
+async function saveDraft(currentPicks, currentBids) {
+  if (!user) {
+    console.log("saveDraft: no user");
+    return;
+  }
+  console.log("saveDraft called", currentPicks, currentBids);
+  const supabase = createClient();
+  const { data, error } = await supabase.from("drafts").upsert({
+    user_id: user.id,
+    name: `Draft ${new Date().toLocaleDateString()}`,
+    draft_type: draftType,
+    teams: draftTeams,
+    rounds: draftRounds,
+    your_slot: yourSlot,
+    picks: currentPicks || {},
+    auction_bids: currentBids || {},
+    settings: { teamNames, idpOn, auctBudget },
+    updated_at: new Date().toISOString(),
+  }, { onConflict: "user_id" });
+  console.log("saveDraft result:", data, error);
+}
+
+async function loadDraft() {
+  if (!user) return;
+  const supabase = createClient();
+  const { data } = await supabase.from("drafts").select("*").eq("user_id", user.id).single();
+  if (data && data.picks && Object.keys(data.picks).length > 0) {
+    setDraftType(data.draft_type);
+    setDraftTeams(data.teams);
+    setDraftRounds(data.rounds);
+    setYourSlot(data.your_slot);
+    setPicks(data.picks);
+    setPickIndex(Object.keys(data.picks).length);
+    setAuctBids(data.auction_bids || {});
+    if (data.settings) {
+      setTeamNames(data.settings.teamNames || teamNames);
+      setIdpOn(data.settings.idpOn || false);
+      setAuctBudget(data.settings.auctBudget || 200);
+    }
+    setDraftStarted(true);
+  }
+}
+
   function pickInfo(idx) {
     const round = Math.floor(idx/draftTeams)+1;
     const pos   = idx % draftTeams;
@@ -150,8 +195,11 @@ async function loadFavorites() {
 
   function draftPlayer(player) {
     if (pickIndex >= totalPicks) return;
-    setPicks(prev => ({...prev, [pickIndex]: player}));
+    const newPicks = {...picks, [pickIndex]: player}
+    setPicks(newPicks);
     setPickIndex(prev => prev+1);
+    setTimeout(saveDraft, auctBids);
+    saveDraft(newPicks, auctBids);
   }
 
   function undoPick() {
@@ -167,9 +215,11 @@ async function loadFavorites() {
 
   function confirmBid() {
     if (!nomPlayer || curBid < 1) return;
-    setAuctBids(prev => ({...prev, [nomPlayer.id]: {team:bidTeam, amount:curBid}}));
+    const newBids = {...auctBids, [nomPlayer.id]: {team:bidTeam, amount:curBid}};
+    setAuctBids(newBids);
     setNomPlayer(null); setCurBid(1);
     setAuctNom(prev => (prev % draftTeams) + 1);
+    setTimeout(saveDraft, newBids);
   }
 
   useEffect(() => {
