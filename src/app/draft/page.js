@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { TrendingUp, Users, Star, Sun, Moon, Settings, ClipboardList, Database } from "lucide-react";
+import { TrendingUp, Users, Star, Sun, Moon, Settings, ClipboardList, Database, DollarSign } from "lucide-react";
 import { DARK, LIGHT } from "@/constants/theme";
 import { buildPlayers, SAMPLES } from "@/utils/players";
 import { tabBtn } from "@/utils/styleHelpers";
@@ -13,6 +13,7 @@ import useWindowSize from "@/hooks/useWindowSize";
 import { createClient } from "@/lib/supabase";
 import AuthModal from "@/components/AuthModal";
 import { LogIn, LogOut } from "lucide-react";
+import CapSheetTab from "@/components/CapSheetTab";
 
 export default function Home() {
   const [players, setPlayers]     = useState([]);
@@ -31,6 +32,8 @@ export default function Home() {
   const [activeTab, setActiveTab]       = useState("rankings");
   const [scoring, setScoring]     = useState("ppr");
   const [statsData, setStatsData] = useState({});
+  const [prevStatsData, setPrevStatsData] = useState({});
+  const [projData, setProjData] = useState({});
   const [rawPlayers, setRawPlayers] = useState([]);
   const [user, setUser] = useState(null);
   const [showAuth, setShowAuth] = useState(false);
@@ -268,23 +271,50 @@ export default function Home() {
         status.sample = {success:true, count:raw.length};
       }
 
-      // Fetch season stats
-      try {
-        const currentYear = new Date().getFullYear();
-        const statsYear = new Date().getMonth() >= 7 ? currentYear : currentYear - 1;
-        const res = await fetch(`https://api.sleeper.app/v1/stats/nfl/regular/${statsYear}`);
-        if (res.ok) {
-          statsData = await res.json();
-          status.stats = {success:true, count:Object.keys(statsData).length, year:statsYear};
-        }
-      } catch {
-        status.stats = {success:false, error:"Stats unavailable"};
-      }
+      // Determine stat years — NFL season starts in August
+      const currentYear = new Date().getFullYear();
+      const currYear = new Date().getMonth() >= 7 ? currentYear : currentYear - 1;
+      const prevYear = currYear - 1;
+      const projYear = currYear + 1; // projections are for the upcoming season
+
+      // Fetch current stats, previous year stats, and projections all in parallel
+      let prevStatsData = {};
+      let projData = {};
+
+      await Promise.all([
+        // Current season stats
+        fetch(`https://api.sleeper.app/v1/stats/nfl/regular/${currYear}`)
+          .then(r => r.ok ? r.json() : {})
+          .then(d => {
+            statsData = d;
+            status.stats = { success: true, count: Object.keys(d).length, year: currYear };
+          })
+          .catch(() => { status.stats = { success: false, error: "Stats unavailable" }; }),
+
+        // Previous season stats (for blending)
+        fetch(`https://api.sleeper.app/v1/stats/nfl/regular/${prevYear}`)
+          .then(r => r.ok ? r.json() : {})
+          .then(d => { prevStatsData = d; })
+          .catch(() => {}),
+
+        // Upcoming season projections
+        fetch(`https://api.sleeper.app/v1/projections/nfl/regular/${projYear}`)
+          .then(r => r.ok ? r.json() : {})
+          .then(d => {
+            projData = d;
+            if (Object.keys(d).length > 0) {
+              status.projections = { success: true, count: Object.keys(d).length, year: projYear };
+            }
+          })
+          .catch(() => {}),
+      ]);
 
       setApiStatus(status);
       setRawPlayers(raw);
-      setPlayers(buildPlayers(raw, budget, scoring, statsData, numTeams));
+      setPlayers(buildPlayers(raw, budget, scoring, statsData, numTeams, prevStatsData, projData));
       setStatsData(statsData);
+      setPrevStatsData(prevStatsData);
+      setProjData(projData);
       setLoading(false);
     }
     load();
@@ -353,7 +383,7 @@ export default function Home() {
             ].map(s => (
               <button key={s.key} onClick={() => {
                 setScoring(s.key);
-                setPlayers(buildPlayers(rawPlayers, budget, s.key, statsData, numTeams));
+                setPlayers(buildPlayers(rawPlayers, budget, s.key, statsData, numTeams, prevStatsData, projData));
                 saveSettings({ theme, scoring: s.key, budget, num_teams: numTeams });
               }}
                 style={{...tabBtn(scoring===s.key,"linear-gradient(135deg,#6366f1,#8b5cf6)",C), padding:isMobile?"8px 12px":"10px 28px", fontSize:isMobile?11:13}}>
@@ -374,6 +404,9 @@ export default function Home() {
               {draftStarted && draftType !== "auction" && (
                 <span style={{padding:"1px 7px",borderRadius:20,fontSize:11,background:"rgba(16,185,129,0.2)",color:"#34d399",border:"1px solid rgba(16,185,129,0.3)"}}>{pickIndex}/{totalPicks}</span>
               )}
+            </button>
+            <button onClick={() => setActiveTab("capsheet")} style={tabBtn(activeTab==="capsheet","linear-gradient(135deg,#10b981,#0d9488)",C)}>
+              <DollarSign size={15}/> CAP SHEET
             </button>
           </div>
         </div>
@@ -410,6 +443,13 @@ export default function Home() {
             confirmBid={confirmBid} pickInfo={pickInfo}
           />
         )}
+        {activeTab === "capsheet" && (
+          <CapSheetTab
+            C={C}
+            players={players}
+            user={user}
+          />
+        )}
       </div>
 
       {/* Modals */}
@@ -420,7 +460,7 @@ export default function Home() {
         onClose={() => setShowSettings(false)}
         showSettings={showSettings}
         onSave={(newBudget, newNumTeams) => {
-          setPlayers(buildPlayers(rawPlayers, newBudget, scoring, statsData, newNumTeams));
+          setPlayers(buildPlayers(rawPlayers, newBudget, scoring, statsData, newNumTeams, prevStatsData, projData));
           saveSettings({ theme, scoring, budget: newBudget, num_teams: newNumTeams });
         }}
       />
