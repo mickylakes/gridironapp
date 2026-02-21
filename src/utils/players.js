@@ -134,6 +134,15 @@ export function buildPlayers(raw, budget, scoring = "ppr", statsData = {}, total
       dynastyAuctionValue: dynastyAuctionVal(dpts, pos, p.age||25, budget),
       hasRealStats: !!(stats && stats[scoreKey] && stats[scoreKey] > 20),
       scoring,
+      status: p.status || null,
+      injuryStatus: p.injury_status || null,
+      injuryBodyPart: p.injury_body_part || null,
+      injuryNotes: p.injury_notes || null,
+      depthChartOrder: p.depth_chart_order || null,
+      depthChartPosition: p.depth_chart_position || null,
+      college: p.college || null,
+      height: p.height || null,
+      weight: p.weight || null,
     };
   }).filter(Boolean)
    .filter(p => p.team && p.team !== "FA" && p.team !== "")
