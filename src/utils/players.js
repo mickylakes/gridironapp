@@ -39,17 +39,18 @@ export function fantasyPos(p) {
   return null;
 }
 
+// Recalibrated to 2024 scoring reality (Lamar led QBs ~430, CMC led RBs ~380, Chase led WRs ~350)
 export function getTier(pos, pts) {
   const thresholds = {
-    QB:  [360, 320, 280, 240],
-    RB:  [280, 220, 160, 110],
-    WR:  [270, 210, 150, 100],
-    TE:  [180, 140, 100, 70],
+    QB:  [400, 340, 280, 220],
+    RB:  [300, 230, 160, 100],
+    WR:  [300, 230, 160, 100],
+    TE:  [180, 140, 100,  65],
     K:   [145, 130, 115, 100],
     DEF: [150, 135, 120, 105],
     DL:  [160, 140, 120, 100],
     LB:  [165, 145, 125, 105],
-    DB:  [145, 125, 105, 85],
+    DB:  [145, 125, 105,  85],
   }[pos] || [200, 160, 120, 80];
   if (pts >= thresholds[0]) return 1;
   if (pts >= thresholds[1]) return 2;
@@ -59,15 +60,11 @@ export function getTier(pos, pts) {
 }
 
 export function auctionVal(pts, pos, budget, totalTeams) {
-  // Position scarcity multipliers
   const sc = {
-    QB:  0.85, RB: 1.4, WR: 1.1, TE: 1.15,
-    K:   0.2,  DEF: 0.3, DL: 0.4, LB: 0.5, DB: 0.4
+    QB: 0.85, RB: 1.4, WR: 1.1, TE: 1.15,
+    K: 0.2, DEF: 0.3, DL: 0.4, LB: 0.5, DB: 0.4,
   }[pos] || 1.0;
-
-  // Scale by league size — more teams = more value for depth
   const leagueMod = totalTeams ? totalTeams / 12 : 1;
-
   return Math.max(1, Math.round(
     Math.min((pts / 10) * sc * (budget / 200) * leagueMod, budget * 0.4)
   ));
@@ -75,82 +72,191 @@ export function auctionVal(pts, pos, budget, totalTeams) {
 
 export function dynastyAuctionVal(pts, pos, age, budget) {
   const base = auctionVal(pts, pos, budget, 12);
-  const am = age < 24 ? 1.5 : age < 27 ? 1.2 : age < 29 ? 1.0 : age < 31 ? 0.7 : 0.4;
-  const pm = {QB:1.1, RB:0.8, WR:1.0, TE:1.0, K:0.3, DEF:0.4}[pos] || 1.0;
+  const am = age < 23 ? 1.6 : age < 25 ? 1.35 : age < 27 ? 1.1 : age < 29 ? 0.9 : age < 31 ? 0.6 : 0.35;
+  const pm = { QB:1.15, RB:0.75, WR:1.05, TE:1.05, K:0.3, DEF:0.4 }[pos] || 1.0;
   return Math.max(1, Math.round(base * am * pm));
 }
 
-// Fallback estimator for players with no stats data
-export function estimatePoints(pos, scoring, age, exp) {
+/**
+ * Estimate points for players with no real stats.
+ * Uses depth chart order to differentiate starters from backups.
+ *   depthOrder 1 = starter (full estimate)
+ *   depthOrder 2 = clear backup (~45%)
+ *   depthOrder 3+ = depth (~20%)
+ *   null = unknown (65% — assume some role)
+ */
+export function estimatePoints(pos, scoring, age, exp, depthOrder = null) {
+  // Full-season baseline for a healthy starter — calibrated to 2023/2024 averages
   const base = {
-    QB:  { ppr:240, half:235, std:230 },
-    RB:  { ppr:150, half:138, std:126 },
-    WR:  { ppr:140, half:128, std:116 },
-    TE:  { ppr:100, half:92,  std:84  },
-    K:   { ppr:110, half:110, std:110 },
-    DEF: { ppr:115, half:115, std:115 },
-    DL:  { ppr:120, half:120, std:120 },
-    LB:  { ppr:130, half:130, std:130 },
-    DB:  { ppr:110, half:110, std:110 },
-  }[pos] || { ppr:80, half:80, std:80 };
+    QB:  { ppr: 310, half: 305, std: 298 },
+    RB:  { ppr: 185, half: 168, std: 152 },
+    WR:  { ppr: 175, half: 158, std: 140 },
+    TE:  { ppr: 125, half: 113, std: 100 },
+    K:   { ppr: 115, half: 115, std: 115 },
+    DEF: { ppr: 120, half: 120, std: 120 },
+    DL:  { ppr: 125, half: 125, std: 125 },
+    LB:  { ppr: 135, half: 135, std: 135 },
+    DB:  { ppr: 115, half: 115, std: 115 },
+  }[pos] || { ppr: 80, half: 80, std: 80 };
 
   let pts = base[scoring] || base.ppr;
-  const ageMod = age < 24 ? 1.05 : age < 27 ? 1.0 : age < 30 ? 0.92 : 0.82;
-  const expMod = exp < 2 ? 0.88 : exp < 5 ? 1.0 : exp < 9 ? 0.95 : 0.88;
-  return Math.max(30, Math.round(pts * ageMod * expMod));
+
+  // Age curve — peak varies by position
+  const ageMod = age < 23 ? 0.88
+    : age < 25 ? 0.96
+    : age < 28 ? 1.0
+    : age < 31 ? 0.91
+    : 0.78;
+
+  // Experience curve — rookies and veterans both decline slightly
+  const expMod = exp === 0 ? 0.82
+    : exp === 1 ? 0.92
+    : exp < 5  ? 1.0
+    : exp < 9  ? 0.96
+    : 0.88;
+
+  // Depth chart scaling — biggest improvement in accuracy
+  const depthMod = depthOrder === 1 ? 1.0
+    : depthOrder === 2 ? 0.45
+    : depthOrder === 3 ? 0.20
+    : depthOrder >= 4  ? 0.10
+    : 0.65; // unknown role
+
+  return Math.max(15, Math.round(pts * ageMod * expMod * depthMod));
 }
 
-export function buildPlayers(raw, budget, scoring = "ppr", statsData = {}, totalTeams = 12) {
-  const scoreKey = scoring === "std" ? "pts_std" : scoring === "half" ? "pts_half_ppr" : "pts_ppr";
-  const dynastyKey = "pts_half_ppr"; // dynasty uses half ppr as base
+/**
+ * Blend two seasons of stats weighted by games played.
+ * More recent season gets 65% weight, prior season gets 35%.
+ * Games-played scaling brings partial seasons to full-season equivalent.
+ */
+function blendStats(curr, prev, scoreKey) {
+  const NFL_GAMES = 17;
+
+  const currPts = curr?.[scoreKey] || 0;
+  const currGp  = curr?.gp || curr?.gms_active || 0;
+  const prevPts = prev?.[scoreKey] || 0;
+  const prevGp  = prev?.gp || prev?.gms_active || 0;
+
+  // Scale each season to full 17 games to avoid penalising injury absences
+  const currScaled = currGp > 4  ? (currPts / currGp) * NFL_GAMES : 0;
+  const prevScaled = prevGp > 4  ? (prevPts / prevGp) * NFL_GAMES : 0;
+
+  if (currScaled > 0 && prevScaled > 0) {
+    // Both seasons available — weight recent more heavily
+    return Math.round(currScaled * 0.65 + prevScaled * 0.35);
+  }
+  if (currScaled > 0) return Math.round(currScaled);
+  if (prevScaled > 0) return Math.round(prevScaled * 0.85); // older data, slight discount
+  return 0;
+}
+
+export function buildPlayers(raw, budget, scoring = "ppr", statsData = {}, totalTeams = 12, prevStatsData = {}, projData = {}) {
+  const scoreKey    = scoring === "std" ? "pts_std" : scoring === "half" ? "pts_half_ppr" : "pts_ppr";
+  const dynastyKey  = "pts_half_ppr";
+  const projKey     = scoreKey; // projections use the same keys
 
   return raw.map(p => {
     const pos = fantasyPos(p);
     if (!pos) return null;
 
-    const stats = statsData[p.player_id];
+    const curr = statsData[p.player_id]    || null;
+    const prev = prevStatsData[p.player_id] || null;
+    const proj = projData[p.player_id]     || null;
 
-    // Use real stats if available, otherwise estimate
-    const rpts = stats && stats[scoreKey] && stats[scoreKey] > 20
-      ? Math.round(stats[scoreKey])
-      : estimatePoints(pos, scoring, p.age||25, p.years_exp||0);
+    const depthOrder = p.depth_chart_order ? Number(p.depth_chart_order) : null;
 
-    const dpts = stats && stats[dynastyKey] && stats[dynastyKey] > 20
-      ? Math.round(stats[dynastyKey] * (p.age < 24 ? 1.2 : p.age < 27 ? 1.0 : p.age < 30 ? 0.85 : 0.65))
-      : estimatePoints(pos, "half", p.age||25, p.years_exp||0);
+    // ── Redraft points ──────────────────────────────────────────────
+    // Priority: 1) Sleeper projection  2) blended 2-yr stats  3) estimate
+    let rpts = 0;
+    let hasRealStats = false;
+
+    const projPts = proj?.[projKey] || 0;
+    const blended = blendStats(curr, prev, scoreKey);
+
+    if (projPts > 20) {
+      // Projections are the most forward-looking — use as primary
+      // Blend slightly with historical to smooth outliers: 60% proj / 40% history
+      rpts = blended > 20
+        ? Math.round(projPts * 0.6 + blended * 0.4)
+        : Math.round(projPts);
+      hasRealStats = true;
+    } else if (blended > 20) {
+      rpts = blended;
+      hasRealStats = true;
+    } else {
+      // No usable data — fall back to depth-chart-aware estimate
+      rpts = estimatePoints(pos, scoring, p.age || 25, p.years_exp || 0, depthOrder);
+      hasRealStats = false;
+    }
+
+    // ── Dynasty points ──────────────────────────────────────────────
+    // Dynasty uses half-PPR blended over 2 years, then applies age+position curve
+    // separately from redraft so age matters more than raw output
+    let dpts = 0;
+    const dynBlended = blendStats(curr, prev, dynastyKey);
+    const dynProj    = proj?.[dynastyKey] || 0;
+
+    let dynBase = 0;
+    if (dynProj > 20) {
+      dynBase = dynBlended > 20
+        ? Math.round(dynProj * 0.6 + dynBlended * 0.4)
+        : Math.round(dynProj);
+    } else if (dynBlended > 20) {
+      dynBase = dynBlended;
+    } else {
+      dynBase = estimatePoints(pos, "half", p.age || 25, p.years_exp || 0, depthOrder);
+    }
+
+    // Age multiplier applied independently — young players get a dynasty premium
+    // even if their current output is low (rookie RB with starter role, etc.)
+    const age = p.age || 25;
+    const ageMulti = age < 22 ? 1.35
+      : age < 24 ? 1.2
+      : age < 26 ? 1.05
+      : age < 28 ? 1.0
+      : age < 30 ? 0.88
+      : age < 32 ? 0.72
+      : 0.50;
+
+    // Position longevity multiplier (RBs age out faster)
+    const posMulti = { QB:1.1, RB:0.82, WR:1.0, TE:1.05, K:0.5, DEF:0.5 }[pos] || 1.0;
+
+    dpts = Math.max(15, Math.round(dynBase * ageMulti * posMulti));
 
     return {
       id: p.player_id,
-      name: (p.first_name||"") + " " + (p.last_name||""),
+      name: (p.first_name || "") + " " + (p.last_name || ""),
       team: p.team || "FA",
       position: pos,
-      age: p.age||25,
+      age,
       number: p.number,
-      yearsExp: p.years_exp||0,
+      yearsExp: p.years_exp || 0,
       redraftPoints: rpts,
       dynastyPoints: dpts,
       tier: getTier(pos, rpts),
       auctionValue: auctionVal(rpts, pos, budget, totalTeams),
-      dynastyAuctionValue: dynastyAuctionVal(dpts, pos, p.age||25, budget),
-      hasRealStats: !!(stats && stats[scoreKey] && stats[scoreKey] > 20),
+      dynastyAuctionValue: dynastyAuctionVal(dpts, pos, age, budget),
+      hasRealStats,
+      hasProjection: projPts > 20,
       scoring,
       status: p.status || null,
       injuryStatus: p.injury_status || null,
       injuryBodyPart: p.injury_body_part || null,
       injuryNotes: p.injury_notes || null,
-      depthChartOrder: p.depth_chart_order || null,
+      depthChartOrder: depthOrder,
       depthChartPosition: p.depth_chart_position || null,
       college: p.college || null,
       height: p.height || null,
       weight: p.weight || null,
     };
   }).filter(Boolean)
-   .filter(p => p.team && p.team !== "FA" && p.team !== "")
-.filter(p => {
-  if (!p.hasRealStats) return true;
-  const minPts = {
-    QB: 150, RB: 50, WR: 50, TE: 40, K: 60, DEF: 60, DL: 25, LB: 25, DB: 25
-  }[p.position] || 30;
-  return p.redraftPoints >= minPts;
-});
+    .filter(p => p.team && p.team !== "FA" && p.team !== "")
+    .filter(p => {
+      // Filter out very low-scoring players who clearly have no fantasy role
+      const minPts = {
+        QB: 100, RB: 30, WR: 30, TE: 25, K: 60, DEF: 60, DL: 20, LB: 20, DB: 20,
+      }[p.position] || 20;
+      return p.redraftPoints >= minPts;
+    });
 }
