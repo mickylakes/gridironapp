@@ -109,12 +109,10 @@ export function auctionVal(pts, pos, budget, totalTeams) {
   ));
 }
 
-export function dynastyAuctionVal(pts, pos, age, budget) {
-  const base = auctionVal(pts, pos, budget, 12);
-  const am = age < 23 ? 1.6 : age < 25 ? 1.35 : age < 27 ? 1.1
-    : age < 29 ? 0.9 : age < 31 ? 0.6 : 0.35;
-  const pm = { QB:1.15, RB:0.75, WR:1.05, TE:1.05, K:0.3, DEF:0.4, DL:0.9, LB:1.0, DB:0.85 }[pos] || 1.0;
-  return Math.max(1, Math.round(base * am * pm));
+export function dynastyAuctionVal(pts, pos, budget) {
+  // pts is already dynasty-adjusted (age + positional longevity baked in via buildPlayers).
+  // Just convert to $ using position scarcity — no second age multiplier needed.
+  return Math.max(1, auctionVal(pts, pos, budget, 12));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -151,9 +149,20 @@ export function estimatePoints(pos, scoring, age, exp, depthOrder = null) {
   return Math.max(15, Math.round(pts * ageMod * expMod * depthMod));
 }
 
+// Positional average baselines for confidence regression (full-season PPR starters)
+const POS_BASELINE = {
+  QB:295, RB:175, WR:165, TE:118, K:115, DEF:130, DL:150, LB:185, DB:120,
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
-// STAT BLENDING — 2-year weighted average, games-played adjusted
-// IDP players route through calcIdpPoints(); offense uses pts_* keys
+// STAT BLENDING — 2-year weighted average with confidence-based regression
+//
+// Problem with raw per-game scaling: a player who goes 8 games / 180pts gets
+// extrapolated to 383pts for a full 17-game season. That's elite WR1 territory
+// based on a small, noisy sample. We fix this by regressing toward the positional
+// average based on how many games were played — fewer games = more regression.
+//
+// Confidence scale:  5 games = 8% confidence, 11 games = 54%, 17 games = 100%
 // ─────────────────────────────────────────────────────────────────────────────
 function blendStats(curr, prev, scoreKey, pos) {
   const NFL_GAMES = 17;
@@ -169,14 +178,18 @@ function blendStats(curr, prev, scoreKey, pos) {
     return stats ? (stats.gp || stats.gms_active || 0) : 0;
   }
 
-  const currPts = getPts(curr);
-  const currGp  = getGp(curr);
-  const prevPts = getPts(prev);
-  const prevGp  = getGp(prev);
+  function scaledWithConfidence(pts, gp) {
+    if (gp <= 4) return 0;
+    const rawScaled = (pts / gp) * NFL_GAMES;
+    // Confidence: 0 at 4 games, 1.0 at 17 games. Below ~11 games we regress
+    // meaningfully toward the positional average to dampen hot/cold streaks.
+    const confidence = Math.min(1, (gp - 4) / (NFL_GAMES - 4));
+    const baseline = POS_BASELINE[pos] || 150;
+    return Math.round(rawScaled * confidence + baseline * (1 - confidence));
+  }
 
-  // Scale to full 17-game season to remove injury absences from ranking
-  const currScaled = currGp > 4 ? (currPts / currGp) * NFL_GAMES : 0;
-  const prevScaled = prevGp > 4 ? (prevPts / prevGp) * NFL_GAMES : 0;
+  const currScaled = scaledWithConfidence(getPts(curr), getGp(curr));
+  const prevScaled = scaledWithConfidence(getPts(prev), getGp(prev));
 
   if (currScaled > 0 && prevScaled > 0) return Math.round(currScaled * 0.65 + prevScaled * 0.35);
   if (currScaled > 0) return Math.round(currScaled);
@@ -255,10 +268,35 @@ export function buildPlayers(raw, budget, scoring = "ppr", statsData = {}, total
     }
 
     const age = p.age || 25;
-    const ageMulti = age < 22 ? 1.35 : age < 24 ? 1.2 : age < 26 ? 1.05
-      : age < 28 ? 1.0 : age < 30 ? 0.88 : age < 32 ? 0.72 : 0.50;
-    const posMulti = { QB:1.1, RB:0.82, WR:1.0, TE:1.05, K:0.5, DEF:0.5, DL:0.9, LB:1.0, DB:0.85 }[pos] || 1.0;
-    const dpts = Math.max(15, Math.round(dynBase * ageMulti * posMulti));
+
+    // Position-specific dynasty age curves. Each position has a different
+    // peak age, decline rate, and longevity ceiling.
+    const dynastyMult = (() => {
+      switch (pos) {
+        case 'QB':
+          // QBs peak late (~27-32) and age gracefully — still productive at 35+
+          return age < 23 ? 1.30 : age < 26 ? 1.15 : age < 31 ? 1.0
+            : age < 34 ? 0.78 : age < 37 ? 0.52 : 0.28;
+        case 'RB':
+          // Hardest cliff of any position — value drops fast after 27
+          return age < 22 ? 1.35 : age < 24 ? 1.15 : age < 27 ? 1.0
+            : age < 29 ? 0.68 : age < 31 ? 0.42 : 0.20;
+        case 'WR':
+          // WRs peak 25-30, gradual decline into early 30s
+          return age < 22 ? 1.30 : age < 24 ? 1.15 : age < 27 ? 1.05
+            : age < 30 ? 1.0 : age < 32 ? 0.82 : age < 34 ? 0.60 : 0.38;
+        case 'TE':
+          // TEs develop slowly, peak 26-30, longer tail than RB
+          return age < 23 ? 1.10 : age < 26 ? 1.20 : age < 30 ? 1.05
+            : age < 32 ? 0.85 : age < 34 ? 0.62 : 0.38;
+        default:
+          // K, DEF, IDP — generic curve
+          return age < 22 ? 1.25 : age < 25 ? 1.10 : age < 29 ? 1.0
+            : age < 32 ? 0.80 : 0.55;
+      }
+    })();
+
+    const dpts = Math.max(15, Math.round(dynBase * dynastyMult));
 
     return {
       id: p.player_id,
@@ -272,7 +310,7 @@ export function buildPlayers(raw, budget, scoring = "ppr", statsData = {}, total
       dynastyPoints: dpts,
       tier: getTier(pos, rpts),
       auctionValue: auctionVal(rpts, pos, budget, totalTeams),
-      dynastyAuctionValue: dynastyAuctionVal(dpts, pos, age, budget),
+      dynastyAuctionValue: dynastyAuctionVal(dpts, pos, budget),
       hasRealStats,
       hasProjection: !isIdp && (proj?.[scoreKey] || 0) > 20,
       isIdp,
