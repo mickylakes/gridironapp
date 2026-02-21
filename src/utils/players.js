@@ -39,7 +39,45 @@ export function fantasyPos(p) {
   return null;
 }
 
-// Recalibrated to 2024 scoring reality (Lamar led QBs ~430, CMC led RBs ~380, Chase led WRs ~350)
+// ─────────────────────────────────────────────────────────────────────────────
+// IDP SCORING
+// IDP players don't have pts_ppr/pts_std keys in Sleeper stats — those fields
+// are blank/0 for defensive players. Points must be computed from raw idp_* keys.
+// These weights match Sleeper's most common standard IDP scoring preset.
+// ─────────────────────────────────────────────────────────────────────────────
+export const IDP_POSITIONS = ["DL", "LB", "DB"];
+
+const IDP_SCORING = {
+  idp_tkl:      1.0,   // solo tackle
+  idp_tkl_ast:  0.5,   // assisted tackle
+  idp_tkl_loss: 1.0,   // tackle for loss (stacks with tackle)
+  idp_qb_hit:   1.0,   // QB hit (stacks with sack)
+  idp_sack:     4.0,   // sack (also counts as tackle + qb_hit + tkl_loss in Sleeper)
+  idp_int:      6.0,   // interception
+  idp_pd:       1.0,   // pass deflection
+  idp_ff:       3.0,   // forced fumble
+  idp_fum_rec:  3.0,   // fumble recovery
+  idp_def_td:   6.0,   // defensive touchdown
+  idp_safe:     2.0,   // safety
+};
+
+/**
+ * Compute IDP fantasy points from a raw Sleeper stats object.
+ * Export this so PlayerModal can use it for history tab display.
+ */
+export function calcIdpPoints(stats) {
+  if (!stats) return 0;
+  let pts = 0;
+  for (const [key, val] of Object.entries(IDP_SCORING)) {
+    pts += (stats[key] || 0) * val;
+  }
+  return Math.round(pts * 10) / 10;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TIERS — calibrated to real 2024 scoring levels
+// LBs score highest (volume tackles), DL next (sack bonus), DBs lowest
+// ─────────────────────────────────────────────────────────────────────────────
 export function getTier(pos, pts) {
   const thresholds = {
     QB:  [400, 340, 280, 220],
@@ -48,9 +86,9 @@ export function getTier(pos, pts) {
     TE:  [180, 140, 100,  65],
     K:   [145, 130, 115, 100],
     DEF: [150, 135, 120, 105],
-    DL:  [160, 140, 120, 100],
-    LB:  [165, 145, 125, 105],
-    DB:  [145, 125, 105,  85],
+    DL:  [180, 145, 110,  75],
+    LB:  [220, 175, 130,  90],
+    DB:  [160, 125,  90,  60],
   }[pos] || [200, 160, 120, 80];
   if (pts >= thresholds[0]) return 1;
   if (pts >= thresholds[1]) return 2;
@@ -62,7 +100,8 @@ export function getTier(pos, pts) {
 export function auctionVal(pts, pos, budget, totalTeams) {
   const sc = {
     QB: 0.85, RB: 1.4, WR: 1.1, TE: 1.15,
-    K: 0.2, DEF: 0.3, DL: 0.4, LB: 0.5, DB: 0.4,
+    K: 0.2, DEF: 0.3,
+    DL: 0.45, LB: 0.55, DB: 0.40,
   }[pos] || 1.0;
   const leagueMod = totalTeams ? totalTeams / 12 : 1;
   return Math.max(1, Math.round(
@@ -72,21 +111,18 @@ export function auctionVal(pts, pos, budget, totalTeams) {
 
 export function dynastyAuctionVal(pts, pos, age, budget) {
   const base = auctionVal(pts, pos, budget, 12);
-  const am = age < 23 ? 1.6 : age < 25 ? 1.35 : age < 27 ? 1.1 : age < 29 ? 0.9 : age < 31 ? 0.6 : 0.35;
-  const pm = { QB:1.15, RB:0.75, WR:1.05, TE:1.05, K:0.3, DEF:0.4 }[pos] || 1.0;
+  const am = age < 23 ? 1.6 : age < 25 ? 1.35 : age < 27 ? 1.1
+    : age < 29 ? 0.9 : age < 31 ? 0.6 : 0.35;
+  const pm = { QB:1.15, RB:0.75, WR:1.05, TE:1.05, K:0.3, DEF:0.4, DL:0.9, LB:1.0, DB:0.85 }[pos] || 1.0;
   return Math.max(1, Math.round(base * am * pm));
 }
 
-/**
- * Estimate points for players with no real stats.
- * Uses depth chart order to differentiate starters from backups.
- *   depthOrder 1 = starter (full estimate)
- *   depthOrder 2 = clear backup (~45%)
- *   depthOrder 3+ = depth (~20%)
- *   null = unknown (65% — assume some role)
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// ESTIMATION — fallback for players with no real stats
+// IDP baselines: LB starter ~185 pts, DL starter ~150, DB starter ~120
+// Depth chart order is critical for IDP — backups have nearly zero value
+// ─────────────────────────────────────────────────────────────────────────────
 export function estimatePoints(pos, scoring, age, exp, depthOrder = null) {
-  // Full-season baseline for a healthy starter — calibrated to 2023/2024 averages
   const base = {
     QB:  { ppr: 310, half: 305, std: 298 },
     RB:  { ppr: 185, half: 168, std: 152 },
@@ -94,135 +130,135 @@ export function estimatePoints(pos, scoring, age, exp, depthOrder = null) {
     TE:  { ppr: 125, half: 113, std: 100 },
     K:   { ppr: 115, half: 115, std: 115 },
     DEF: { ppr: 120, half: 120, std: 120 },
-    DL:  { ppr: 125, half: 125, std: 125 },
-    LB:  { ppr: 135, half: 135, std: 135 },
-    DB:  { ppr: 115, half: 115, std: 115 },
+    // IDP scoring doesn't vary by PPR/std — same defensive stat keys either way
+    DL:  { ppr: 150, half: 150, std: 150 },
+    LB:  { ppr: 185, half: 185, std: 185 },
+    DB:  { ppr: 120, half: 120, std: 120 },
   }[pos] || { ppr: 80, half: 80, std: 80 };
 
   let pts = base[scoring] || base.ppr;
 
-  // Age curve — peak varies by position
-  const ageMod = age < 23 ? 0.88
-    : age < 25 ? 0.96
-    : age < 28 ? 1.0
-    : age < 31 ? 0.91
-    : 0.78;
+  const ageMod = age < 23 ? 0.88 : age < 25 ? 0.96 : age < 28 ? 1.0 : age < 31 ? 0.91 : 0.78;
+  const expMod = exp === 0 ? 0.82 : exp === 1 ? 0.92 : exp < 5 ? 1.0 : exp < 9 ? 0.96 : 0.88;
 
-  // Experience curve — rookies and veterans both decline slightly
-  const expMod = exp === 0 ? 0.82
-    : exp === 1 ? 0.92
-    : exp < 5  ? 1.0
-    : exp < 9  ? 0.96
-    : 0.88;
-
-  // Depth chart scaling — biggest improvement in accuracy
+  // Depth chart matters even more for IDP — a backup LB gets almost no snaps
   const depthMod = depthOrder === 1 ? 1.0
-    : depthOrder === 2 ? 0.45
-    : depthOrder === 3 ? 0.20
-    : depthOrder >= 4  ? 0.10
-    : 0.65; // unknown role
+    : depthOrder === 2 ? 0.40
+    : depthOrder === 3 ? 0.15
+    : depthOrder >= 4  ? 0.08
+    : 0.55; // unknown role — conservative default for IDP
 
   return Math.max(15, Math.round(pts * ageMod * expMod * depthMod));
 }
 
-/**
- * Blend two seasons of stats weighted by games played.
- * More recent season gets 65% weight, prior season gets 35%.
- * Games-played scaling brings partial seasons to full-season equivalent.
- */
-function blendStats(curr, prev, scoreKey) {
+// ─────────────────────────────────────────────────────────────────────────────
+// STAT BLENDING — 2-year weighted average, games-played adjusted
+// IDP players route through calcIdpPoints(); offense uses pts_* keys
+// ─────────────────────────────────────────────────────────────────────────────
+function blendStats(curr, prev, scoreKey, pos) {
   const NFL_GAMES = 17;
+  const isIdp = IDP_POSITIONS.includes(pos);
 
-  const currPts = curr?.[scoreKey] || 0;
-  const currGp  = curr?.gp || curr?.gms_active || 0;
-  const prevPts = prev?.[scoreKey] || 0;
-  const prevGp  = prev?.gp || prev?.gms_active || 0;
-
-  // Scale each season to full 17 games to avoid penalising injury absences
-  const currScaled = currGp > 4  ? (currPts / currGp) * NFL_GAMES : 0;
-  const prevScaled = prevGp > 4  ? (prevPts / prevGp) * NFL_GAMES : 0;
-
-  if (currScaled > 0 && prevScaled > 0) {
-    // Both seasons available — weight recent more heavily
-    return Math.round(currScaled * 0.65 + prevScaled * 0.35);
+  function getPts(stats) {
+    if (!stats) return 0;
+    if (isIdp) return calcIdpPoints(stats); // compute from raw defensive keys
+    return stats[scoreKey] || 0;
   }
+
+  function getGp(stats) {
+    return stats ? (stats.gp || stats.gms_active || 0) : 0;
+  }
+
+  const currPts = getPts(curr);
+  const currGp  = getGp(curr);
+  const prevPts = getPts(prev);
+  const prevGp  = getGp(prev);
+
+  // Scale to full 17-game season to remove injury absences from ranking
+  const currScaled = currGp > 4 ? (currPts / currGp) * NFL_GAMES : 0;
+  const prevScaled = prevGp > 4 ? (prevPts / prevGp) * NFL_GAMES : 0;
+
+  if (currScaled > 0 && prevScaled > 0) return Math.round(currScaled * 0.65 + prevScaled * 0.35);
   if (currScaled > 0) return Math.round(currScaled);
-  if (prevScaled > 0) return Math.round(prevScaled * 0.85); // older data, slight discount
+  if (prevScaled > 0) return Math.round(prevScaled * 0.85);
   return 0;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// BUILD PLAYERS
+// ─────────────────────────────────────────────────────────────────────────────
 export function buildPlayers(raw, budget, scoring = "ppr", statsData = {}, totalTeams = 12, prevStatsData = {}, projData = {}) {
-  const scoreKey    = scoring === "std" ? "pts_std" : scoring === "half" ? "pts_half_ppr" : "pts_ppr";
-  const dynastyKey  = "pts_half_ppr";
-  const projKey     = scoreKey; // projections use the same keys
+  const scoreKey   = scoring === "std" ? "pts_std" : scoring === "half" ? "pts_half_ppr" : "pts_ppr";
+  const dynastyKey = "pts_half_ppr";
 
   return raw.map(p => {
     const pos = fantasyPos(p);
     if (!pos) return null;
 
-    const curr = statsData[p.player_id]    || null;
+    const curr = statsData[p.player_id]     || null;
     const prev = prevStatsData[p.player_id] || null;
-    const proj = projData[p.player_id]     || null;
+    const proj = projData[p.player_id]      || null;
 
     const depthOrder = p.depth_chart_order ? Number(p.depth_chart_order) : null;
+    const isIdp = IDP_POSITIONS.includes(pos);
 
-    // ── Redraft points ──────────────────────────────────────────────
-    // Priority: 1) Sleeper projection  2) blended 2-yr stats  3) estimate
+    // ── Redraft points ────────────────────────────────────────────────────
     let rpts = 0;
     let hasRealStats = false;
 
-    const projPts = proj?.[projKey] || 0;
-    const blended = blendStats(curr, prev, scoreKey);
+    const blended = blendStats(curr, prev, scoreKey, pos);
 
-    if (projPts > 20) {
-      // Projections are the most forward-looking — use as primary
-      // Blend slightly with historical to smooth outliers: 60% proj / 40% history
-      rpts = blended > 20
-        ? Math.round(projPts * 0.6 + blended * 0.4)
-        : Math.round(projPts);
-      hasRealStats = true;
-    } else if (blended > 20) {
-      rpts = blended;
-      hasRealStats = true;
+    if (isIdp) {
+      // Projections don't carry idp_* keys reliably — use blended actuals only
+      if (blended > 10) {
+        rpts = blended;
+        hasRealStats = true;
+      } else {
+        rpts = estimatePoints(pos, scoring, p.age || 25, p.years_exp || 0, depthOrder);
+        hasRealStats = false;
+      }
     } else {
-      // No usable data — fall back to depth-chart-aware estimate
-      rpts = estimatePoints(pos, scoring, p.age || 25, p.years_exp || 0, depthOrder);
-      hasRealStats = false;
+      const projPts = proj?.[scoreKey] || 0;
+      if (projPts > 20) {
+        rpts = blended > 20
+          ? Math.round(projPts * 0.6 + blended * 0.4)
+          : Math.round(projPts);
+        hasRealStats = true;
+      } else if (blended > 20) {
+        rpts = blended;
+        hasRealStats = true;
+      } else {
+        rpts = estimatePoints(pos, scoring, p.age || 25, p.years_exp || 0, depthOrder);
+        hasRealStats = false;
+      }
     }
 
-    // ── Dynasty points ──────────────────────────────────────────────
-    // Dynasty uses half-PPR blended over 2 years, then applies age+position curve
-    // separately from redraft so age matters more than raw output
-    let dpts = 0;
-    const dynBlended = blendStats(curr, prev, dynastyKey);
-    const dynProj    = proj?.[dynastyKey] || 0;
-
+    // ── Dynasty points ────────────────────────────────────────────────────
+    const dynBlended = blendStats(curr, prev, dynastyKey, pos);
     let dynBase = 0;
-    if (dynProj > 20) {
-      dynBase = dynBlended > 20
-        ? Math.round(dynProj * 0.6 + dynBlended * 0.4)
-        : Math.round(dynProj);
-    } else if (dynBlended > 20) {
-      dynBase = dynBlended;
+
+    if (isIdp) {
+      dynBase = dynBlended > 10
+        ? dynBlended
+        : estimatePoints(pos, "half", p.age || 25, p.years_exp || 0, depthOrder);
     } else {
-      dynBase = estimatePoints(pos, "half", p.age || 25, p.years_exp || 0, depthOrder);
+      const dynProj = proj?.[dynastyKey] || 0;
+      if (dynProj > 20) {
+        dynBase = dynBlended > 20
+          ? Math.round(dynProj * 0.6 + dynBlended * 0.4)
+          : Math.round(dynProj);
+      } else if (dynBlended > 20) {
+        dynBase = dynBlended;
+      } else {
+        dynBase = estimatePoints(pos, "half", p.age || 25, p.years_exp || 0, depthOrder);
+      }
     }
 
-    // Age multiplier applied independently — young players get a dynasty premium
-    // even if their current output is low (rookie RB with starter role, etc.)
     const age = p.age || 25;
-    const ageMulti = age < 22 ? 1.35
-      : age < 24 ? 1.2
-      : age < 26 ? 1.05
-      : age < 28 ? 1.0
-      : age < 30 ? 0.88
-      : age < 32 ? 0.72
-      : 0.50;
-
-    // Position longevity multiplier (RBs age out faster)
-    const posMulti = { QB:1.1, RB:0.82, WR:1.0, TE:1.05, K:0.5, DEF:0.5 }[pos] || 1.0;
-
-    dpts = Math.max(15, Math.round(dynBase * ageMulti * posMulti));
+    const ageMulti = age < 22 ? 1.35 : age < 24 ? 1.2 : age < 26 ? 1.05
+      : age < 28 ? 1.0 : age < 30 ? 0.88 : age < 32 ? 0.72 : 0.50;
+    const posMulti = { QB:1.1, RB:0.82, WR:1.0, TE:1.05, K:0.5, DEF:0.5, DL:0.9, LB:1.0, DB:0.85 }[pos] || 1.0;
+    const dpts = Math.max(15, Math.round(dynBase * ageMulti * posMulti));
 
     return {
       id: p.player_id,
@@ -238,7 +274,8 @@ export function buildPlayers(raw, budget, scoring = "ppr", statsData = {}, total
       auctionValue: auctionVal(rpts, pos, budget, totalTeams),
       dynastyAuctionValue: dynastyAuctionVal(dpts, pos, age, budget),
       hasRealStats,
-      hasProjection: projPts > 20,
+      hasProjection: !isIdp && (proj?.[scoreKey] || 0) > 20,
+      isIdp,
       scoring,
       status: p.status || null,
       injuryStatus: p.injury_status || null,
@@ -253,9 +290,9 @@ export function buildPlayers(raw, budget, scoring = "ppr", statsData = {}, total
   }).filter(Boolean)
     .filter(p => p.team && p.team !== "FA" && p.team !== "")
     .filter(p => {
-      // Filter out very low-scoring players who clearly have no fantasy role
       const minPts = {
-        QB: 100, RB: 30, WR: 30, TE: 25, K: 60, DEF: 60, DL: 20, LB: 20, DB: 20,
+        QB: 100, RB: 30, WR: 30, TE: 25, K: 60, DEF: 60,
+        DL: 40, LB: 50, DB: 35,
       }[p.position] || 20;
       return p.redraftPoints >= minPts;
     });

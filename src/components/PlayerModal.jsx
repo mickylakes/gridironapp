@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { Star, TrendingUp, ShieldAlert, Loader, User } from "lucide-react";
 import { pc, ti } from "@/constants/theme";
+import { calcIdpPoints, IDP_POSITIONS } from "@/utils/players";
 
 const CURRENT_YEAR = new Date().getFullYear();
 const STATS_YEARS = [
@@ -27,15 +28,16 @@ const SCORING_OPTIONS = [
 ];
 
 export default function PlayerModal({ C, player, favorites, toggleFav, onClose }) {
-  const [history, setHistory]               = useState({});  // { year: { pts_ppr, pts_half_ppr, pts_std } }
+  // Store full raw stats object per year so we can re-score on toggle without re-fetching
+  const [rawHistory, setRawHistory]         = useState({});
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [activeTab, setActiveTab]           = useState("overview");
   const [historyScoring, setHistoryScoring] = useState("pts_half_ppr");
 
-  // All hooks first — early return comes after
+  // All hooks first — early return after
   useEffect(() => {
     if (!player) return;
-    setHistory({});
+    setRawHistory({});
     setActiveTab("overview");
     setHistoryScoring("pts_half_ppr");
     fetchHistory();
@@ -51,46 +53,70 @@ export default function PlayerModal({ C, player, favorites, toggleFav, onClose }
           if (!res.ok) return;
           const data = await res.json();
           const s = data[player.id];
-          if (s) {
-            // Store all three scoring formats at once — no need to re-fetch when toggling
-            const entry = {
-              pts_ppr:      s.pts_ppr      ? Math.round(s.pts_ppr      * 10) / 10 : 0,
-              pts_half_ppr: s.pts_half_ppr ? Math.round(s.pts_half_ppr * 10) / 10 : 0,
-              pts_std:      s.pts_std      ? Math.round(s.pts_std      * 10) / 10 : 0,
-            };
-            if (entry.pts_ppr > 0 || entry.pts_half_ppr > 0 || entry.pts_std > 0) {
-              results[year] = entry;
-            }
-          }
+          // Store the full raw stats object — IDP and offense both need it
+          if (s) results[year] = s;
         } catch { /* year unavailable */ }
       })
     );
-    setHistory(results);
+    setRawHistory(results);
     setLoadingHistory(false);
   }
 
   // Early return AFTER all hooks
   if (!player || !C) return null;
 
+  const isIdp    = IDP_POSITIONS.includes(player.position);
   const posColor = pc(player.position);
-  const tier = ti(player.tier);
-  const injStyle = player.injuryStatus ? (INJURY_COLORS[player.injuryStatus] || INJURY_COLORS["Questionable"]) : null;
+  const tier     = ti(player.tier);
+  const injStyle = player.injuryStatus
+    ? (INJURY_COLORS[player.injuryStatus] || INJURY_COLORS["Questionable"])
+    : null;
 
-  // Build history entries using the currently selected scoring format
+  /**
+   * Get display points for a year's raw stats.
+   * IDP: always calcIdpPoints() — pts_ppr/etc are always 0 for defensive players.
+   * Offense: use the selected scoring key with fallback chain.
+   */
+  function getDisplayPts(rawStats, scoringKey) {
+    if (!rawStats) return 0;
+    if (isIdp) return calcIdpPoints(rawStats);
+    const pts = rawStats[scoringKey]
+      || rawStats["pts_half_ppr"]
+      || rawStats["pts_ppr"]
+      || rawStats["pts_std"]
+      || 0;
+    return Math.round(pts * 10) / 10;
+  }
+
   const historyEntries = STATS_YEARS.map(y => ({
     year: y,
-    pts: history[y] ? (history[y][historyScoring] || 0) : 0,
+    pts: getDisplayPts(rawHistory[y], historyScoring),
   })).reverse();
-  const maxPts = Math.max(...historyEntries.map(e => e.pts), 1);
 
-  // Sparkline always uses half PPR for overview consistency
+  // Sparkline always shows half PPR (or IDP)
   const sparkEntries = STATS_YEARS.map(y => ({
     year: y,
-    pts: history[y] ? (history[y]["pts_half_ppr"] || 0) : 0,
+    pts: getDisplayPts(rawHistory[y], "pts_half_ppr"),
   })).reverse();
+
+  const maxPts   = Math.max(...historyEntries.map(e => e.pts), 1);
   const sparkMax = Math.max(...sparkEntries.map(e => e.pts), 1);
 
-  const scoringLabel = SCORING_OPTIONS.find(s => s.key === historyScoring)?.label || "Half PPR";
+  const scoringLabel = isIdp
+    ? "IDP Pts"
+    : (SCORING_OPTIONS.find(s => s.key === historyScoring)?.label || "Half PPR");
+
+  // IDP breakdown for overview — use most recent year with data
+  const latestIdpYear = STATS_YEARS.find(y => rawHistory[y] && calcIdpPoints(rawHistory[y]) > 0);
+  const latestRaw     = latestIdpYear ? rawHistory[latestIdpYear] : null;
+  const idpBreakdown  = isIdp && latestRaw ? [
+    { label:"Tackles",  value: ((latestRaw.idp_tkl || 0) + (latestRaw.idp_tkl_ast || 0)).toFixed(0) },
+    { label:"Sacks",    value: (latestRaw.idp_sack    || 0).toFixed(1) },
+    { label:"INT",      value: (latestRaw.idp_int     || 0).toFixed(0) },
+    { label:"PD",       value: (latestRaw.idp_pd      || 0).toFixed(0) },
+    { label:"FF",       value: (latestRaw.idp_ff      || 0).toFixed(0) },
+    { label:"FR",       value: (latestRaw.idp_fum_rec || 0).toFixed(0) },
+  ] : [];
 
   function TabBtn({ id, label, icon: Icon }) {
     const active = activeTab === id;
@@ -113,9 +139,14 @@ export default function PlayerModal({ C, player, favorites, toggleFav, onClose }
               <h2 style={{margin:"0 0 6px",fontSize:26,fontWeight:900,color:C.textPri}}>{player.name}</h2>
               <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
                 <span style={{padding:"3px 10px",borderRadius:6,background:posColor,color:"#fff",fontWeight:800,fontSize:12}}>{player.position}</span>
-                <span style={{fontSize:13,fontFamily:"monospace",color:C.textSec}}>{player.team}{player.number && player.number !== "0" && player.number !== 0 ? " #"+player.number : ""}</span>
+                <span style={{fontSize:13,fontFamily:"monospace",color:C.textSec}}>
+                  {player.team}{player.number && player.number !== "0" && player.number !== 0 ? " #"+player.number : ""}
+                </span>
                 <span style={{fontSize:13,color:C.textSec}}>Age {player.age} · {player.yearsExp} YOE</span>
                 <span style={{padding:"2px 8px",borderRadius:20,background:tier.bg,color:tier.col,fontWeight:700,fontSize:11}}>{tier.label}</span>
+                {isIdp && (
+                  <span style={{padding:"2px 8px",borderRadius:20,background:"rgba(6,182,212,0.15)",border:"1px solid rgba(6,182,212,0.3)",color:"#06b6d4",fontWeight:700,fontSize:11}}>IDP</span>
+                )}
                 {injStyle && (
                   <span style={{padding:"2px 10px",borderRadius:20,background:injStyle.bg,border:"1px solid "+injStyle.border,color:injStyle.text,fontWeight:800,fontSize:11}}>⚠️ {injStyle.label}</span>
                 )}
@@ -132,17 +163,17 @@ export default function PlayerModal({ C, player, favorites, toggleFav, onClose }
           <TabBtn id="status"   label="Status"   icon={ShieldAlert}/>
         </div>
 
-        {/* OVERVIEW */}
+        {/* ── OVERVIEW ── */}
         {activeTab === "overview" && (
           <div style={{padding:24,display:"flex",flexDirection:"column",gap:16}}>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
               {[
-                {label:"Redraft Pts", value:player.redraftPoints.toFixed(1), color:"#34d399", sub:"Half PPR"},
-                {label:"Dynasty Pts", value:player.dynastyPoints.toFixed(1),  color:"#818cf8", sub:"Half PPR"},
-                {label:"Auction $",   value:"$"+player.auctionValue,          color:"#fbbf24", sub:"Redraft"},
-                {label:"Dynasty $",   value:"$"+player.dynastyAuctionValue,   color:"#f472b6", sub:"Dynasty"},
-                {label:"Tier",        value:tier.label,                        color:tier.bg,   sub:player.position+" rank"},
-                {label:"Data",        value:player.hasRealStats?"Real":"Est.", color:player.hasRealStats?"#34d399":"#94a3b8", sub:"source"},
+                { label: isIdp ? "IDP Pts"     : "Redraft Pts", value: player.redraftPoints.toFixed(1), color:"#34d399", sub: isIdp ? "Std IDP" : "Half PPR" },
+                { label: isIdp ? "Dyn IDP Pts" : "Dynasty Pts", value: player.dynastyPoints.toFixed(1), color:"#818cf8", sub: isIdp ? "Age adj." : "Half PPR" },
+                { label:"Auction $",  value:"$"+player.auctionValue,        color:"#fbbf24", sub:"Redraft" },
+                { label:"Dynasty $",  value:"$"+player.dynastyAuctionValue, color:"#f472b6", sub:"Dynasty" },
+                { label:"Tier",       value:tier.label,                      color:tier.bg,   sub:player.position+" rank" },
+                { label:"Data",       value:player.hasRealStats?"Real":"Est.", color:player.hasRealStats?"#34d399":"#94a3b8", sub:"source" },
               ].map(item => (
                 <div key={item.label} style={{borderRadius:12,padding:"12px 14px",border:"1px solid "+C.border,background:C.statBg}}>
                   <div style={{fontSize:10,fontFamily:"monospace",textTransform:"uppercase",letterSpacing:"0.06em",color:C.textSec,marginBottom:4}}>{item.label}</div>
@@ -151,9 +182,30 @@ export default function PlayerModal({ C, player, favorites, toggleFav, onClose }
                 </div>
               ))}
             </div>
+
+            {/* IDP defensive stat breakdown */}
+            {isIdp && idpBreakdown.length > 0 && (
+              <div style={{borderRadius:12,padding:16,border:"1px solid "+C.border,background:C.statBg}}>
+                <div style={{fontSize:11,fontFamily:"monospace",color:C.textSec,marginBottom:12,textTransform:"uppercase",letterSpacing:"0.05em"}}>
+                  {latestIdpYear} Defensive Stats
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:8}}>
+                  {idpBreakdown.map(({label, value}) => (
+                    <div key={label} style={{textAlign:"center"}}>
+                      <div style={{fontSize:20,fontWeight:900,color:posColor}}>{value}</div>
+                      <div style={{fontSize:10,fontFamily:"monospace",color:C.textSec,marginTop:2}}>{label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Sparkline */}
             {!loadingHistory && sparkEntries.some(e => e.pts > 0) && (
               <div style={{borderRadius:12,padding:16,border:"1px solid "+C.border,background:C.statBg}}>
-                <div style={{fontSize:11,fontFamily:"monospace",color:C.textSec,marginBottom:12,textTransform:"uppercase",letterSpacing:"0.05em"}}>Recent Fantasy Points (Half PPR)</div>
+                <div style={{fontSize:11,fontFamily:"monospace",color:C.textSec,marginBottom:12,textTransform:"uppercase",letterSpacing:"0.05em"}}>
+                  Recent Points ({isIdp ? "IDP Scoring" : "Half PPR"})
+                </div>
                 <div style={{display:"flex",alignItems:"flex-end",gap:6,height:60}}>
                   {sparkEntries.map(({year,pts}) => (
                     <div key={year} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
@@ -168,24 +220,31 @@ export default function PlayerModal({ C, player, favorites, toggleFav, onClose }
           </div>
         )}
 
-        {/* HISTORY */}
+        {/* ── HISTORY ── */}
         {activeTab === "history" && (
           <div style={{padding:24}}>
-
-            {/* Scoring toggle */}
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-              <div style={{fontSize:13,color:C.textSec}}>Season-by-season fantasy points</div>
-              <div style={{display:"inline-flex",background:C.inputBg,border:"1px solid "+C.border,borderRadius:10,padding:3,gap:2}}>
-                {SCORING_OPTIONS.map(opt => (
-                  <button
-                    key={opt.key}
-                    onClick={() => setHistoryScoring(opt.key)}
-                    style={{padding:"5px 10px",borderRadius:7,border:"none",cursor:"pointer",fontWeight:700,fontSize:11,background:historyScoring===opt.key?posColor:"transparent",color:historyScoring===opt.key?"#fff":C.textSec,transition:"all 0.15s"}}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
+              <div style={{fontSize:13,color:C.textSec}}>
+                Season-by-season {isIdp ? "IDP" : "fantasy"} points
               </div>
+              {/* Scoring toggle — hidden for IDP since pts don't vary by PPR/std */}
+              {!isIdp ? (
+                <div style={{display:"inline-flex",background:C.inputBg,border:"1px solid "+C.border,borderRadius:10,padding:3,gap:2}}>
+                  {SCORING_OPTIONS.map(opt => (
+                    <button
+                      key={opt.key}
+                      onClick={() => setHistoryScoring(opt.key)}
+                      style={{padding:"5px 10px",borderRadius:7,border:"none",cursor:"pointer",fontWeight:700,fontSize:11,background:historyScoring===opt.key?posColor:"transparent",color:historyScoring===opt.key?"#fff":C.textSec,transition:"all 0.15s"}}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <span style={{padding:"5px 12px",borderRadius:8,background:"rgba(6,182,212,0.1)",border:"1px solid rgba(6,182,212,0.2)",fontSize:11,fontWeight:700,color:"#06b6d4"}}>
+                  IDP Scoring
+                </span>
+              )}
             </div>
 
             {loadingHistory ? (
@@ -205,17 +264,17 @@ export default function PlayerModal({ C, player, favorites, toggleFav, onClose }
                   ))}
                 </div>
 
-                {/* Table */}
+                {/* Points table */}
                 <div style={{borderRadius:12,border:"1px solid "+C.border,overflow:"hidden"}}>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",padding:"10px 16px",background:C.headerBg,fontSize:11,fontFamily:"monospace",color:C.textSec,textTransform:"uppercase",letterSpacing:"0.05em"}}>
                     <span>Season</span>
                     <span style={{textAlign:"center"}}>{scoringLabel}</span>
                     <span style={{textAlign:"right"}}>vs Avg</span>
                   </div>
-                  {historyEntries.map(({year,pts}) => {
+                  {historyEntries.map(({year, pts}) => {
                     const valid = historyEntries.filter(e => e.pts > 0);
-                    const avg = valid.reduce((s,e) => s+e.pts, 0) / Math.max(1, valid.length);
-                    const diff = pts > 0 ? pts - avg : null;
+                    const avg   = valid.reduce((s,e) => s+e.pts, 0) / Math.max(1, valid.length);
+                    const diff  = pts > 0 ? pts - avg : null;
                     return (
                       <div key={year} style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",padding:"12px 16px",borderTop:"1px solid "+C.border,fontSize:13}}>
                         <span style={{fontWeight:700,color:C.textPri}}>{year}</span>
@@ -228,6 +287,33 @@ export default function PlayerModal({ C, player, favorites, toggleFav, onClose }
                   })}
                 </div>
 
+                {/* IDP raw stat breakdown for most recent year with data */}
+                {isIdp && latestRaw && (
+                  <div style={{marginTop:16,borderRadius:12,border:"1px solid "+C.border,overflow:"hidden"}}>
+                    <div style={{padding:"10px 16px",background:C.headerBg,fontSize:11,fontFamily:"monospace",color:C.textSec,textTransform:"uppercase",letterSpacing:"0.05em"}}>
+                      {latestIdpYear} Raw Defensive Stats
+                    </div>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr"}}>
+                      {[
+                        { label:"Solo Tackles", value: latestRaw.idp_tkl || 0 },
+                        { label:"Ast Tackles",  value: latestRaw.idp_tkl_ast || 0 },
+                        { label:"TFL",          value: latestRaw.idp_tkl_loss || 0 },
+                        { label:"Sacks",        value: (latestRaw.idp_sack || 0).toFixed(1) },
+                        { label:"QB Hits",      value: latestRaw.idp_qb_hit || 0 },
+                        { label:"INT",          value: latestRaw.idp_int || 0 },
+                        { label:"Pass Def",     value: latestRaw.idp_pd || 0 },
+                        { label:"Forced Fum",   value: latestRaw.idp_ff || 0 },
+                        { label:"Fum Rec",      value: latestRaw.idp_fum_rec || 0 },
+                      ].map(({label, value}) => (
+                        <div key={label} style={{padding:"12px 16px",borderTop:"1px solid "+C.border,borderRight:"1px solid "+C.border}}>
+                          <div style={{fontSize:10,fontFamily:"monospace",color:C.textSec,marginBottom:4}}>{label}</div>
+                          <div style={{fontSize:18,fontWeight:900,color:posColor}}>{value}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {!historyEntries.some(e => e.pts > 0) && (
                   <div style={{textAlign:"center",padding:40,color:C.textSec,fontSize:13}}>No historical stats available.</div>
                 )}
@@ -236,7 +322,7 @@ export default function PlayerModal({ C, player, favorites, toggleFav, onClose }
           </div>
         )}
 
-        {/* STATUS */}
+        {/* ── STATUS ── */}
         {activeTab === "status" && (
           <div style={{padding:24,display:"flex",flexDirection:"column",gap:12}}>
             {injStyle ? (
@@ -244,7 +330,7 @@ export default function PlayerModal({ C, player, favorites, toggleFav, onClose }
                 <div style={{fontSize:11,fontFamily:"monospace",color:injStyle.text,marginBottom:6,letterSpacing:"0.05em"}}>INJURY STATUS</div>
                 <div style={{fontSize:22,fontWeight:900,color:injStyle.text,marginBottom:4}}>⚠️ {player.injuryStatus}</div>
                 {player.injuryBodyPart && <div style={{fontSize:13,color:injStyle.text,opacity:0.85}}>Body part: {player.injuryBodyPart}</div>}
-                {player.injuryNotes && <div style={{fontSize:13,color:injStyle.text,opacity:0.85,marginTop:4}}>{player.injuryNotes}</div>}
+                {player.injuryNotes    && <div style={{fontSize:13,color:injStyle.text,opacity:0.85,marginTop:4}}>{player.injuryNotes}</div>}
               </div>
             ) : (
               <div style={{padding:16,borderRadius:12,background:"rgba(16,185,129,0.1)",border:"1px solid rgba(16,185,129,0.3)"}}>
@@ -269,12 +355,12 @@ export default function PlayerModal({ C, player, favorites, toggleFav, onClose }
                 <User size={12}/> Player Info
               </div>
               {[
-                {label:"College",    value:player.college||"—"},
-                {label:"Height",     value:player.height ? `${Math.floor(player.height/12)}'${player.height%12}"` : "—"},
-                {label:"Weight",     value:player.weight ? `${player.weight} lbs` : "—"},
-                {label:"Age",        value:player.age ? `${player.age} yrs` : "—"},
-                {label:"Experience", value:`${player.yearsExp} year${player.yearsExp!==1?"s":""}`},
-              ].map(({label,value}) => (
+                { label:"College",    value: player.college || "—" },
+                { label:"Height",     value: player.height ? `${Math.floor(player.height/12)}'${player.height%12}"` : "—" },
+                { label:"Weight",     value: player.weight ? `${player.weight} lbs` : "—" },
+                { label:"Age",        value: player.age ? `${player.age} yrs` : "—" },
+                { label:"Experience", value: `${player.yearsExp} year${player.yearsExp!==1?"s":""}` },
+              ].map(({label, value}) => (
                 <div key={label} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"11px 16px",borderTop:"1px solid "+C.border}}>
                   <span style={{fontSize:12,color:C.textSec,fontFamily:"monospace"}}>{label}</span>
                   <span style={{fontSize:13,fontWeight:700,color:C.textPri}}>{value}</span>
