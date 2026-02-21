@@ -20,16 +20,24 @@ const INJURY_COLORS = {
   "Probable":    { bg:"rgba(16,185,129,0.15)", border:"rgba(16,185,129,0.4)", text:"#34d399", label:"PROBABLE" },
 };
 
+const SCORING_OPTIONS = [
+  { key:"pts_half_ppr", label:"Half PPR" },
+  { key:"pts_ppr",      label:"PPR" },
+  { key:"pts_std",      label:"Standard" },
+];
+
 export default function PlayerModal({ C, player, favorites, toggleFav, onClose }) {
-  const [history, setHistory]             = useState({});
+  const [history, setHistory]               = useState({});  // { year: { pts_ppr, pts_half_ppr, pts_std } }
   const [loadingHistory, setLoadingHistory] = useState(false);
-  const [activeTab, setActiveTab]         = useState("overview");
+  const [activeTab, setActiveTab]           = useState("overview");
+  const [historyScoring, setHistoryScoring] = useState("pts_half_ppr");
 
   // All hooks first — early return comes after
   useEffect(() => {
     if (!player) return;
     setHistory({});
     setActiveTab("overview");
+    setHistoryScoring("pts_half_ppr");
     fetchHistory();
   }, [player?.id]);
 
@@ -44,8 +52,15 @@ export default function PlayerModal({ C, player, favorites, toggleFav, onClose }
           const data = await res.json();
           const s = data[player.id];
           if (s) {
-            const pts = s.pts_half_ppr || s.pts_ppr || s.pts_std || 0;
-            if (pts > 0) results[year] = Math.round(pts * 10) / 10;
+            // Store all three scoring formats at once — no need to re-fetch when toggling
+            const entry = {
+              pts_ppr:      s.pts_ppr      ? Math.round(s.pts_ppr      * 10) / 10 : 0,
+              pts_half_ppr: s.pts_half_ppr ? Math.round(s.pts_half_ppr * 10) / 10 : 0,
+              pts_std:      s.pts_std      ? Math.round(s.pts_std      * 10) / 10 : 0,
+            };
+            if (entry.pts_ppr > 0 || entry.pts_half_ppr > 0 || entry.pts_std > 0) {
+              results[year] = entry;
+            }
           }
         } catch { /* year unavailable */ }
       })
@@ -54,13 +69,28 @@ export default function PlayerModal({ C, player, favorites, toggleFav, onClose }
     setLoadingHistory(false);
   }
 
+  // Early return AFTER all hooks
   if (!player || !C) return null;
 
   const posColor = pc(player.position);
   const tier = ti(player.tier);
   const injStyle = player.injuryStatus ? (INJURY_COLORS[player.injuryStatus] || INJURY_COLORS["Questionable"]) : null;
-  const historyEntries = STATS_YEARS.map(y => ({ year:y, pts:history[y]||0 })).reverse();
+
+  // Build history entries using the currently selected scoring format
+  const historyEntries = STATS_YEARS.map(y => ({
+    year: y,
+    pts: history[y] ? (history[y][historyScoring] || 0) : 0,
+  })).reverse();
   const maxPts = Math.max(...historyEntries.map(e => e.pts), 1);
+
+  // Sparkline always uses half PPR for overview consistency
+  const sparkEntries = STATS_YEARS.map(y => ({
+    year: y,
+    pts: history[y] ? (history[y]["pts_half_ppr"] || 0) : 0,
+  })).reverse();
+  const sparkMax = Math.max(...sparkEntries.map(e => e.pts), 1);
+
+  const scoringLabel = SCORING_OPTIONS.find(s => s.key === historyScoring)?.label || "Half PPR";
 
   function TabBtn({ id, label, icon: Icon }) {
     const active = activeTab === id;
@@ -121,14 +151,14 @@ export default function PlayerModal({ C, player, favorites, toggleFav, onClose }
                 </div>
               ))}
             </div>
-            {!loadingHistory && historyEntries.some(e => e.pts > 0) && (
+            {!loadingHistory && sparkEntries.some(e => e.pts > 0) && (
               <div style={{borderRadius:12,padding:16,border:"1px solid "+C.border,background:C.statBg}}>
                 <div style={{fontSize:11,fontFamily:"monospace",color:C.textSec,marginBottom:12,textTransform:"uppercase",letterSpacing:"0.05em"}}>Recent Fantasy Points (Half PPR)</div>
                 <div style={{display:"flex",alignItems:"flex-end",gap:6,height:60}}>
-                  {historyEntries.map(({year,pts}) => (
+                  {sparkEntries.map(({year,pts}) => (
                     <div key={year} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
                       <div style={{fontSize:10,fontWeight:700,color:pts>0?posColor:C.dashCol}}>{pts>0?pts:"-"}</div>
-                      <div style={{width:"100%",borderRadius:"4px 4px 0 0",background:pts>0?posColor:C.border,height:Math.max(4,(pts/maxPts)*44)+"px",opacity:pts>0?1:0.3}}/>
+                      <div style={{width:"100%",borderRadius:"4px 4px 0 0",background:pts>0?posColor:C.border,height:Math.max(4,(pts/sparkMax)*44)+"px",opacity:pts>0?1:0.3}}/>
                       <div style={{fontSize:10,fontFamily:"monospace",color:C.textSec}}>{String(year).slice(2)}</div>
                     </div>
                   ))}
@@ -141,25 +171,46 @@ export default function PlayerModal({ C, player, favorites, toggleFav, onClose }
         {/* HISTORY */}
         {activeTab === "history" && (
           <div style={{padding:24}}>
-            <div style={{fontSize:13,color:C.textSec,marginBottom:20}}>Season-by-season fantasy points (Half PPR)</div>
+
+            {/* Scoring toggle */}
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+              <div style={{fontSize:13,color:C.textSec}}>Season-by-season fantasy points</div>
+              <div style={{display:"inline-flex",background:C.inputBg,border:"1px solid "+C.border,borderRadius:10,padding:3,gap:2}}>
+                {SCORING_OPTIONS.map(opt => (
+                  <button
+                    key={opt.key}
+                    onClick={() => setHistoryScoring(opt.key)}
+                    style={{padding:"5px 10px",borderRadius:7,border:"none",cursor:"pointer",fontWeight:700,fontSize:11,background:historyScoring===opt.key?posColor:"transparent",color:historyScoring===opt.key?"#fff":C.textSec,transition:"all 0.15s"}}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {loadingHistory ? (
               <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,padding:40,color:C.textSec}}>
                 <Loader size={18} style={{animation:"spin 1s linear infinite"}}/> Loading history...
               </div>
             ) : (
               <>
+                {/* Bar chart */}
                 <div style={{display:"flex",alignItems:"flex-end",gap:8,height:160,marginBottom:16}}>
                   {historyEntries.map(({year,pts}) => (
                     <div key={year} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
                       <div style={{fontSize:12,fontWeight:800,color:pts>0?posColor:C.dashCol}}>{pts>0?pts:"-"}</div>
-                      <div style={{width:"100%",borderRadius:"6px 6px 0 0",background:pts>0?`linear-gradient(180deg,${posColor},${posColor}88)`:C.border,height:Math.max(4,(pts/maxPts)*130)+"px",opacity:pts>0?1:0.3}}/>
+                      <div style={{width:"100%",borderRadius:"6px 6px 0 0",background:pts>0?`linear-gradient(180deg,${posColor},${posColor}88)`:C.border,height:Math.max(4,(pts/maxPts)*130)+"px",opacity:pts>0?1:0.3,transition:"height 0.3s ease"}}/>
                       <div style={{fontSize:11,fontFamily:"monospace",color:C.textSec,fontWeight:700}}>{year}</div>
                     </div>
                   ))}
                 </div>
+
+                {/* Table */}
                 <div style={{borderRadius:12,border:"1px solid "+C.border,overflow:"hidden"}}>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",padding:"10px 16px",background:C.headerBg,fontSize:11,fontFamily:"monospace",color:C.textSec,textTransform:"uppercase",letterSpacing:"0.05em"}}>
-                    <span>Season</span><span style={{textAlign:"center"}}>Half PPR</span><span style={{textAlign:"right"}}>vs Avg</span>
+                    <span>Season</span>
+                    <span style={{textAlign:"center"}}>{scoringLabel}</span>
+                    <span style={{textAlign:"right"}}>vs Avg</span>
                   </div>
                   {historyEntries.map(({year,pts}) => {
                     const valid = historyEntries.filter(e => e.pts > 0);
@@ -176,6 +227,7 @@ export default function PlayerModal({ C, player, favorites, toggleFav, onClose }
                     );
                   })}
                 </div>
+
                 {!historyEntries.some(e => e.pts > 0) && (
                   <div style={{textAlign:"center",padding:40,color:C.textSec,fontSize:13}}>No historical stats available.</div>
                 )}
