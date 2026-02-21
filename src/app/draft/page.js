@@ -84,7 +84,9 @@ useEffect(() => {
 }, []);
 
 useEffect(() => {
-  if (user) loadSettings();
+  if (user) 
+    loadSettings();
+    loadFavorites();
 }, [user]);
 
 async function handleSignOut() {
@@ -120,6 +122,13 @@ async function loadSettings() {
   }
 }
 
+async function loadFavorites() {
+  if (!user) return;
+  const supabase = createClient();
+  const { data } = await supabase.from("favorites").select("player_id").eq("user_id", user.id);
+  if (data) setFavorites(new Set(data.map(f => f.player_id)));
+}
+
   function pickInfo(idx) {
     const round = Math.floor(idx/draftTeams)+1;
     const pos   = idx % draftTeams;
@@ -127,9 +136,17 @@ async function loadSettings() {
     return {round, team};
   }
 
-  function toggleFav(id) {
-    setFavorites(prev => { const n=new Set(prev); n.has(id)?n.delete(id):n.add(id); return n; });
+  async function toggleFav(id) {
+  setFavorites(prev => { const n=new Set(prev); n.has(id)?n.delete(id):n.add(id); return n; });
+  if (!user) return;
+  const supabase = createClient();
+  const isFav = favorites.has(id);
+  if (isFav) {
+    await supabase.from("favorites").delete().eq("user_id", user.id).eq("player_id", id);
+  } else {
+    await supabase.from("favorites").insert({ user_id: user.id, player_id: id });
   }
+}
 
   function draftPlayer(player) {
     if (pickIndex >= totalPicks) return;
