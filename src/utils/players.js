@@ -335,3 +335,21 @@ export function buildPlayers(raw, budget, scoring = "ppr", statsData = {}, total
       return p.redraftPoints >= minPts;
     });
 }
+
+    export function capSalaryValue(pts, pos, capCeiling = 50_000_000, totalTeams = 12) {
+      const auctVal = auctionVal(pts, pos, 200, totalTeams); // $ out of $200 budget
+      const pct = auctVal / 200;                             // fraction of budget
+      const raw = Math.round(pct * capCeiling);
+      const floor = 750_000;
+      const ceiling = Math.round(capCeiling * 0.35);
+    return Math.max(floor, Math.min(raw, ceiling));
+    }
+
+    export function capSalaryValueDynasty(pts, pos, capCeiling = 50_000_000) {
+      const auctVal = dynastyAuctionVal(pts, pos, capCeiling);
+      const pct = auctVal / capCeiling;
+      const raw = Math.round(pct * capCeiling);
+      const floor = 750_000;
+      const ceiling = Math.round(capCeiling * 0.35);
+    return Math.max(floor, Math.min(raw, ceiling));
+}  

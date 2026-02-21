@@ -64,6 +64,9 @@ export default function Home() {
   const dk = theme === "dark";
   const totalPicks = draftTeams * draftRounds;
 
+  // Salary cap state
+  const [capCeiling, setCapCeiling] = useState(50_000_000);
+
   // FIX 1: Removed duplicate auth useEffect — single subscription only
   useEffect(() => {
     const supabase = createClient();
@@ -116,6 +119,7 @@ export default function Home() {
         if (data.scoring) setScoring(data.scoring);
         if (data.budget) setBudget(data.budget);
         if (data.num_teams) setNumTeams(data.num_teams);
+        if (data.cap_ceiling) setCapCeiling(data.cap_ceiling);
       }
     } catch (err) {
       console.error("loadSettings exception:", err);
@@ -418,6 +422,8 @@ export default function Home() {
             selPos={selPos} setSelPos={setSelPos} search={search} setSearch={setSearch}
             showFavs={showFavs} setShowFavs={setShowFavs} favorites={favorites}
             toggleFav={toggleFav} setSelPlayer={setSelPlayer} budget={budget}
+            capCeiling={capCeiling}
+            numTeams={numTeams}
           />
         )}
 
