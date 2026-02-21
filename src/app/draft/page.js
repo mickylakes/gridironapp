@@ -61,117 +61,130 @@ export default function Home() {
   const dk = theme === "dark";
   const totalPicks = draftTeams * draftRounds;
 
+  // FIX 1: Removed duplicate auth useEffect — single subscription only
   useEffect(() => {
-  const supabase = createClient();
-  supabase.auth.getSession().then(({ data: { session } }) => {
-    setUser(session?.user ?? null);
-  });
-  const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-    setUser(session?.user ?? null);
-  });
-  return () => subscription.unsubscribe();
-}, []);
+    const supabase = createClient();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
-useEffect(() => {
-  const supabase = createClient();
-  supabase.auth.getSession().then(({ data: { session } }) => {
-    setUser(session?.user ?? null);
-  });
-  const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-    setUser(session?.user ?? null);
-  });
-  return () => subscription.unsubscribe();
-}, []);
-
-useEffect(() => {
-  if (user) {
-    loadSettings();
-    loadFavorites();
-    loadDraft();
-  }
-}, [user]);
-
-async function handleSignOut() {
-  const supabase = createClient();
-  await supabase.auth.signOut();
-  setUser(null);
-}
-
-async function saveSettings(newSettings) {
-  if (!user) {
-    return;
-  }
-  const supabase = createClient();
-  const { data, error } = await supabase.from("user_settings").upsert({
-    user_id: user.id,
-    ...newSettings,
-    updated_at: new Date().toISOString(),
-  }, { onConflict: "user_id" });
-}
-
-async function loadSettings() {
-  if (!user) return;
-  const supabase = createClient();
-  const { data } = await supabase.from("user_settings").select("*").eq("user_id", user.id).single();
-  if (data) {
-    if (data.theme) setTheme(data.theme);
-    if (data.scoring) setScoring(data.scoring);
-    if (data.budget) setBudget(data.budget);
-    if (data.num_teams) setNumTeams(data.num_teams);
-  }
-}
-
-async function loadFavorites() {
-  if (!user) return;
-  const supabase = createClient();
-  const { data } = await supabase.from("favorites").select("player_id").eq("user_id", user.id);
-  if (data) setFavorites(new Set(data.map(f => f.player_id)));
-}
-
-async function saveDraft(currentPicks, currentBids) {
-  if (!user) {
-    return;
-  }
-  const supabase = createClient();
-  const { data, error } = await supabase.from("drafts").upsert({
-    user_id: user.id,
-    name: `Draft ${new Date().toLocaleDateString()}`,
-    draft_type: draftType,
-    teams: draftTeams,
-    rounds: draftRounds,
-    your_slot: yourSlot,
-    picks: currentPicks || {},
-    auction_bids: currentBids || {},
-    settings: { teamNames, idpOn, auctBudget },
-    updated_at: new Date().toISOString(),
-  }, { onConflict: "user_id" });
-}
-
-async function loadDraft() {
-  if (!user) return;
-  const supabase = createClient();
-  const { data } = await supabase.from("drafts").select("*").eq("user_id", user.id).single();
-  if (!data) return;
-  
-  const hasPicks = data.picks && Object.keys(data.picks).length > 0;
-  const hasAuctBids = data.auction_bids && Object.keys(data.auction_bids).length > 0;
-  
-  if (hasPicks || hasAuctBids) {
-    setDraftType(data.draft_type);
-    setDraftTeams(data.teams);
-    setDraftRounds(data.rounds);
-    setYourSlot(data.your_slot);
-    setPicks(data.picks || {});
-    setPickIndex(Object.keys(data.picks || {}).length);
-    setAuctBids(data.auction_bids || {});
-    if (data.settings) {
-      setTeamNames(data.settings.teamNames || teamNames);
-      setIdpOn(data.settings.idpOn || false);
-      setAuctBudget(data.settings.auctBudget || 200);
+  useEffect(() => {
+    if (user) {
+      loadSettings();
+      loadFavorites();
+      loadDraft();
     }
-    setDraftStarted(true);
+  }, [user]);
+
+  async function handleSignOut() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    setUser(null);
   }
-}
+
+  async function saveSettings(newSettings) {
+    if (!user) return;
+    const supabase = createClient();
+    try {
+      const { error } = await supabase.from("user_settings").upsert({
+        user_id: user.id,
+        ...newSettings,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "user_id" });
+      if (error) console.error("saveSettings error:", error);
+    } catch (err) {
+      console.error("saveSettings exception:", err);
+    }
+  }
+
+  async function loadSettings() {
+    if (!user) return;
+    const supabase = createClient();
+    try {
+      const { data, error } = await supabase.from("user_settings").select("*").eq("user_id", user.id).single();
+      if (error && error.code !== "PGRST116") console.error("loadSettings error:", error);
+      if (data) {
+        if (data.theme) setTheme(data.theme);
+        if (data.scoring) setScoring(data.scoring);
+        if (data.budget) setBudget(data.budget);
+        if (data.num_teams) setNumTeams(data.num_teams);
+      }
+    } catch (err) {
+      console.error("loadSettings exception:", err);
+    }
+  }
+
+  async function loadFavorites() {
+    if (!user) return;
+    const supabase = createClient();
+    try {
+      const { data, error } = await supabase.from("favorites").select("player_id").eq("user_id", user.id);
+      if (error) console.error("loadFavorites error:", error);
+      if (data) setFavorites(new Set(data.map(f => f.player_id)));
+    } catch (err) {
+      console.error("loadFavorites exception:", err);
+    }
+  }
+
+  // FIX 2: saveDraft now uses user_id as the upsert conflict target.
+  // Requires: ALTER TABLE drafts ADD CONSTRAINT drafts_user_id_key UNIQUE (user_id);
+  async function saveDraft(currentPicks, currentBids) {
+    if (!user) return;
+    const supabase = createClient();
+    try {
+      const { error } = await supabase.from("drafts").upsert({
+        user_id: user.id,
+        name: `Draft ${new Date().toLocaleDateString()}`,
+        draft_type: draftType,
+        teams: draftTeams,
+        rounds: draftRounds,
+        your_slot: yourSlot,
+        picks: currentPicks || {},
+        auction_bids: currentBids || {},
+        settings: { teamNames, idpOn, auctBudget },
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "user_id" });
+      if (error) console.error("saveDraft error:", error);
+    } catch (err) {
+      console.error("saveDraft exception:", err);
+    }
+  }
+
+  async function loadDraft() {
+    if (!user) return;
+    const supabase = createClient();
+    try {
+      const { data, error } = await supabase.from("drafts").select("*").eq("user_id", user.id).single();
+      if (error && error.code !== "PGRST116") console.error("loadDraft error:", error);
+      if (!data) return;
+
+      const hasPicks = data.picks && Object.keys(data.picks).length > 0;
+      const hasAuctBids = data.auction_bids && Object.keys(data.auction_bids).length > 0;
+
+      if (hasPicks || hasAuctBids) {
+        setDraftType(data.draft_type);
+        setDraftTeams(data.teams);
+        setDraftRounds(data.rounds);
+        setYourSlot(data.your_slot);
+        setPicks(data.picks || {});
+        setPickIndex(Object.keys(data.picks || {}).length);
+        setAuctBids(data.auction_bids || {});
+        if (data.settings) {
+          setTeamNames(data.settings.teamNames || teamNames);
+          setIdpOn(data.settings.idpOn || false);
+          setAuctBudget(data.settings.auctBudget || 200);
+        }
+        setDraftStarted(true);
+      }
+    } catch (err) {
+      console.error("loadDraft exception:", err);
+    }
+  }
 
   function pickInfo(idx) {
     const round = Math.floor(idx/draftTeams)+1;
@@ -180,89 +193,102 @@ async function loadDraft() {
     return {round, team};
   }
 
+  // FIX 3: toggleFav now captures isFav before the optimistic state update
+  // so the Supabase delete/insert direction is always correct.
   async function toggleFav(id) {
-  setFavorites(prev => { const n=new Set(prev); n.has(id)?n.delete(id):n.add(id); return n; });
-  if (!user) return;
-  const supabase = createClient();
-  const isFav = favorites.has(id);
-  if (isFav) {
-    await supabase.from("favorites").delete().eq("user_id", user.id).eq("player_id", id);
-  } else {
-    await supabase.from("favorites").insert({ user_id: user.id, player_id: id });
+    const isFav = favorites.has(id);
+    setFavorites(prev => { const n=new Set(prev); isFav ? n.delete(id) : n.add(id); return n; });
+    if (!user) return;
+    const supabase = createClient();
+    try {
+      if (isFav) {
+        const { error } = await supabase.from("favorites").delete().eq("user_id", user.id).eq("player_id", id);
+        if (error) console.error("toggleFav delete error:", error);
+      } else {
+        const { error } = await supabase.from("favorites").insert({ user_id: user.id, player_id: id });
+        if (error) console.error("toggleFav insert error:", error);
+      }
+    } catch (err) {
+      console.error("toggleFav exception:", err);
+    }
   }
-}
 
+  // FIX 4: Removed the broken setTimeout(saveDraft, auctBids) call.
   function draftPlayer(player) {
     if (pickIndex >= totalPicks) return;
-    const newPicks = {...picks, [pickIndex]: player}
+    const newPicks = {...picks, [pickIndex]: player};
     setPicks(newPicks);
     setPickIndex(prev => prev+1);
-    setTimeout(saveDraft, auctBids);
     saveDraft(newPicks, auctBids);
   }
 
+  // FIX 5: undoPick now persists the undo to Supabase.
   function undoPick() {
     if (pickIndex === 0) return;
-    setPicks(prev => { const n={...prev}; delete n[pickIndex-1]; return n; });
+    const newPicks = {...picks};
+    delete newPicks[pickIndex-1];
+    setPicks(newPicks);
     setPickIndex(prev => prev-1);
+    saveDraft(newPicks, auctBids);
   }
 
   function resetDraft() {
     setPicks({}); setPickIndex(0); setDraftStarted(false);
     setAuctBids({}); setNomPlayer(null); setAuctNom(1); setCurBid(1); setBidTeam(1);
+    saveDraft({}, {});
   }
 
   function confirmBid() {
-  if (!nomPlayer || curBid < 1) return;
-  const newBids = {...auctBids, [nomPlayer.id]: {team:bidTeam, amount:curBid}};
-  setAuctBids(newBids);
-  setNomPlayer(null); setCurBid(1);
-  setAuctNom(prev => (prev % draftTeams) + 1);
-  setDraftStarted(true);
-  saveDraft(picks, newBids);
-}
+    if (!nomPlayer || curBid < 1) return;
+    const newBids = {...auctBids, [nomPlayer.id]: {team:bidTeam, amount:curBid}};
+    setAuctBids(newBids);
+    setNomPlayer(null); setCurBid(1);
+    setAuctNom(prev => (prev % draftTeams) + 1);
+    setDraftStarted(true);
+    saveDraft(picks, newBids);
+  }
 
   useEffect(() => {
-  async function load() {
-    setLoading(true);
-    let raw = [];
-    let statsData = {};
-    const status = {};
+    async function load() {
+      setLoading(true);
+      let raw = [];
+      let statsData = {};
+      const status = {};
 
-    // Fetch players
-    try {
-      const res = await fetch("https://api.sleeper.app/v1/players/nfl");
-      if (res.ok) {
-        const data = await res.json();
-        raw = Object.values(data).filter(p => p.active && p.position);
-        status.sleeper = {success:true, count:raw.length};
-      } else throw new Error();
-    } catch {
-      raw = SAMPLES;
-      status.sample = {success:true, count:raw.length};
-    }
-
-    // Fetch 2025 season stats
-    try {
-      const currentYear = new Date().getFullYear();
-const statsYear = new Date().getMonth() >= 7 ? currentYear : currentYear - 1;
-const res = await fetch(`https://api.sleeper.app/v1/stats/nfl/regular/${statsYear}`);
-      if (res.ok) {
-        statsData = await res.json();
-        status.stats = {success:true, count:Object.keys(statsData).length, year:statsYear};
+      // Fetch players
+      try {
+        const res = await fetch("https://api.sleeper.app/v1/players/nfl");
+        if (res.ok) {
+          const data = await res.json();
+          raw = Object.values(data).filter(p => p.active && p.position);
+          status.sleeper = {success:true, count:raw.length};
+        } else throw new Error();
+      } catch {
+        raw = SAMPLES;
+        status.sample = {success:true, count:raw.length};
       }
-    } catch {
-      status.stats = {success:false, error:"Stats unavailable"};
-    }
 
-    setApiStatus(status);
-    setRawPlayers(raw);
-    setPlayers(buildPlayers(raw, budget, scoring, statsData, numTeams));
-    setStatsData(statsData);
-    setLoading(false);
-  }
-  load();
-}, []);
+      // Fetch season stats
+      try {
+        const currentYear = new Date().getFullYear();
+        const statsYear = new Date().getMonth() >= 7 ? currentYear : currentYear - 1;
+        const res = await fetch(`https://api.sleeper.app/v1/stats/nfl/regular/${statsYear}`);
+        if (res.ok) {
+          statsData = await res.json();
+          status.stats = {success:true, count:Object.keys(statsData).length, year:statsYear};
+        }
+      } catch {
+        status.stats = {success:false, error:"Stats unavailable"};
+      }
+
+      setApiStatus(status);
+      setRawPlayers(raw);
+      setPlayers(buildPlayers(raw, budget, scoring, statsData, numTeams));
+      setStatsData(statsData);
+      setLoading(false);
+    }
+    load();
+  }, []);
 
   if (loading) {
     return (
@@ -325,11 +351,11 @@ const res = await fetch(`https://api.sleeper.app/v1/stats/nfl/regular/${statsYea
               {key:"half", label:"Half PPR"},
               {key:"std",  label:"Standard"},
             ].map(s => (
-        <button key={s.key} onClick={() => {
-          setScoring(s.key);
-          setPlayers(buildPlayers(rawPlayers, budget, s.key, statsData, numTeams));
-          saveSettings({ theme, scoring: s.key, budget, num_teams: numTeams });
-        }}
+              <button key={s.key} onClick={() => {
+                setScoring(s.key);
+                setPlayers(buildPlayers(rawPlayers, budget, s.key, statsData, numTeams));
+                saveSettings({ theme, scoring: s.key, budget, num_teams: numTeams });
+              }}
                 style={{...tabBtn(scoring===s.key,"linear-gradient(135deg,#6366f1,#8b5cf6)",C), padding:isMobile?"8px 12px":"10px 28px", fontSize:isMobile?11:13}}>
                 {s.label}
               </button>
