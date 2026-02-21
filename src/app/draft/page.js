@@ -99,17 +99,14 @@ async function handleSignOut() {
 
 async function saveSettings(newSettings) {
   if (!user) {
-    console.log("saveSettings: no user, skipping");
-     return;
+    return;
   }
-  console.log("saveSettings called with:", newSettings, "user:", user.id);
   const supabase = createClient();
   const { data, error } = await supabase.from("user_settings").upsert({
     user_id: user.id,
     ...newSettings,
     updated_at: new Date().toISOString(),
   }, { onConflict: "user_id" });
-  console.log("saveSettings result:", data, error);
 }
 
 async function loadSettings() {
@@ -133,10 +130,8 @@ async function loadFavorites() {
 
 async function saveDraft(currentPicks, currentBids) {
   if (!user) {
-    console.log("saveDraft: no user");
     return;
   }
-  console.log("saveDraft called", currentPicks, currentBids);
   const supabase = createClient();
   const { data, error } = await supabase.from("drafts").upsert({
     user_id: user.id,
@@ -150,7 +145,6 @@ async function saveDraft(currentPicks, currentBids) {
     settings: { teamNames, idpOn, auctBudget },
     updated_at: new Date().toISOString(),
   }, { onConflict: "user_id" });
-  console.log("saveDraft result:", data, error);
 }
 
 async function loadDraft() {
