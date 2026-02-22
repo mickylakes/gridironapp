@@ -1,9 +1,19 @@
 "use client";
-import { Search, Star, Zap, Clock, Download, Users } from "lucide-react";
+import { useState } from "react";
+import { Search, Star, Zap, Clock, Download, Users, Newspaper, ChevronDown, ExternalLink } from "lucide-react";
 import { pc, ti } from "@/constants/theme";
 import { tabBtn, posBtn } from "@/utils/styleHelpers";
 import useWindowSize from "@/hooks/useWindowSize";
 import { capSalaryValue, capSalaryValueDynasty } from "@/utils/players";
+
+function timeAgo(dateStr) {
+  if (!dateStr) return "";
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const h = Math.floor(diff / 3_600_000);
+  if (h < 1)  return "Just now";
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
 
 const POSITIONS = ["ALL","QB","RB","WR","TE","K","DEF","DL","LB","DB"];
 
@@ -20,8 +30,10 @@ export default function RankingsTab({
   selPos, setSelPos, search, setSearch,
   showFavs, setShowFavs, favorites, toggleFav,
   setSelPlayer, budget, capCeiling = 50_000_000, numTeams = 12,
+  newsItems = [],
 }) {
   const { isMobile } = useWindowSize();
+  const [newsOpen, setNewsOpen] = useState(true);
 
   const filtered = players
     .filter(p => selPos === "ALL" || p.position === selPos)
@@ -46,9 +58,11 @@ export default function RankingsTab({
     a.click();
   }
 
-  // Desktop: show cap value column after Pts, before old $ Value
-  // Mobile: hidden (too cramped)
-  const cols = isMobile ? "40px 1fr 70px 80px" : "40px 1fr 70px 60px 80px 100px 110px 70px";
+  // Desktop: star | player | pos | team | age | adp | pts | cap | tier
+  // Mobile:  star | player | pos | pts
+  const cols = isMobile
+    ? "40px 1fr 70px 80px"
+    : "40px 1fr 70px 60px 80px 70px 100px 110px 70px";
 
   return (
     <div>
@@ -98,6 +112,56 @@ export default function RankingsTab({
         </div>
       )}
 
+      {/* News feed */}
+      {newsItems.length > 0 && (
+        <div style={{marginBottom:20,borderRadius:14,border:"1px solid "+C.border,overflow:"hidden",background:C.cardBg}}>
+          {/* Header row */}
+          <button
+            onClick={() => setNewsOpen(o => !o)}
+            style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 16px",background:C.headerBg,border:"none",cursor:"pointer",color:C.textSec}}
+          >
+            <span style={{display:"flex",alignItems:"center",gap:8,fontWeight:700,fontSize:12,fontFamily:"monospace",letterSpacing:"0.05em",textTransform:"uppercase"}}>
+              <Newspaper size={14} color="#818cf8"/> NFL News &amp; Transactions
+              <span style={{padding:"1px 8px",borderRadius:20,background:"rgba(99,102,241,0.15)",border:"1px solid rgba(99,102,241,0.3)",color:"#818cf8",fontSize:11}}>{newsItems.length}</span>
+            </span>
+            <ChevronDown size={15} style={{transition:"transform 0.2s",transform:newsOpen?"rotate(180deg)":"none"}}/>
+          </button>
+
+          {newsOpen && (
+            <div style={{display:"flex",gap:10,padding:"12px 14px",overflowX:"auto",scrollbarWidth:"none"}}>
+              {newsItems.slice(0, 15).map((item, i) => (
+                <a
+                  key={i}
+                  href={item.link || undefined}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={e => !item.link && e.preventDefault()}
+                  style={{
+                    flexShrink:0, width:isMobile?220:260, borderRadius:10, padding:"10px 12px",
+                    border:"1px solid "+C.border, background:C.statBg, textDecoration:"none",
+                    display:"flex", flexDirection:"column", gap:6,
+                    cursor: item.link ? "pointer" : "default",
+                  }}
+                >
+                  {item.playerName && (
+                    <span style={{display:"inline-flex",alignItems:"center",alignSelf:"flex-start",padding:"1px 8px",borderRadius:20,background:"rgba(99,102,241,0.15)",border:"1px solid rgba(99,102,241,0.25)",fontSize:10,fontWeight:700,color:"#818cf8",fontFamily:"monospace"}}>
+                      {item.playerName}
+                    </span>
+                  )}
+                  <span style={{fontSize:12,fontWeight:700,color:C.textPri,lineHeight:1.4,display:"-webkit-box",WebkitLineClamp:3,WebkitBoxOrient:"vertical",overflow:"hidden"}}>
+                    {item.title}
+                  </span>
+                  <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:"auto"}}>
+                    <span style={{fontSize:10,fontFamily:"monospace",color:C.textSec}}>{timeAgo(item.date)}</span>
+                    {item.link && <ExternalLink size={11} color={C.textSec}/>}
+                  </span>
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Player table */}
       <div style={{background:C.cardBg,border:"1px solid "+C.border,borderRadius:16,overflow:"hidden",boxShadow:"0 8px 32px rgba(0,0,0,0.2)"}}>
 
@@ -108,6 +172,7 @@ export default function RankingsTab({
           <div style={{textAlign:"center"}}>Pos</div>
           {!isMobile && <div style={{textAlign:"center"}}>Team</div>}
           {!isMobile && <div style={{textAlign:"center"}}>Age/Exp</div>}
+          {!isMobile && <div style={{textAlign:"center"}}>ADP</div>}
           <div style={{textAlign:"center"}}>Pts</div>
           {!isMobile && <div style={{textAlign:"center"}}>Cap Value</div>}
           {!isMobile && <div style={{textAlign:"center"}}>Tier</div>}
@@ -160,6 +225,19 @@ export default function RankingsTab({
                 <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
                   <span style={{fontWeight:700,fontSize:13}}>{player.age}y</span>
                   <span style={{fontFamily:"monospace",fontSize:11,color:C.textSec}}>{player.yearsExp} YOE</span>
+                </div>
+              )}
+
+              {/* ADP column — desktop only */}
+              {!isMobile && (
+                <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+                  {player.adpRank != null
+                    ? <>
+                        <span style={{fontWeight:700,fontSize:13,color:C.textPri}}>{player.adpRank.toFixed(1)}</span>
+                        <span style={{fontFamily:"monospace",fontSize:10,color:C.textSec}}>ADP</span>
+                      </>
+                    : <span style={{fontSize:13,color:C.dashCol}}>—</span>
+                  }
                 </div>
               )}
 

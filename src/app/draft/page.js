@@ -69,6 +69,10 @@ export default function Home() {
   // Salary cap state
   const [capCeiling, setCapCeiling] = useState(50_000_000);
 
+  // Tank01: ADP + news
+  const [adpData,   setAdpData]   = useState([]);
+  const [newsItems, setNewsItems] = useState([]);
+
   // FIX 1: Removed duplicate auth useEffect — single subscription only
   useEffect(() => {
     const supabase = createClient();
@@ -88,6 +92,27 @@ export default function Home() {
       loadDraft();
     }
   }, [user]);
+
+  // Fetch Tank01 ADP + news on mount (non-blocking)
+  useEffect(() => {
+    fetch("/api/tank01?type=adp")
+      .then(r => r.ok ? r.json() : [])
+      .then(data => { if (Array.isArray(data) && data.length > 0) setAdpData(data); })
+      .catch(err => console.error("Tank01 ADP fetch error:", err));
+
+    fetch("/api/tank01?type=news")
+      .then(r => r.ok ? r.json() : [])
+      .then(data => { if (Array.isArray(data) && data.length > 0) setNewsItems(data); })
+      .catch(err => console.error("Tank01 news fetch error:", err));
+  }, []);
+
+  // Rebuild players with ADP data once it arrives (rawPlayers may already be loaded)
+  useEffect(() => {
+    if (adpData.length > 0 && rawPlayers.length > 0) {
+      setPlayers(buildPlayers(rawPlayers, budget, scoring, statsData, numTeams, prevStatsData, projData, adpData));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [adpData]);
 
   async function handleSignOut() {
     const supabase = createClient();
@@ -317,7 +342,7 @@ export default function Home() {
 
       setApiStatus(status);
       setRawPlayers(raw);
-      setPlayers(buildPlayers(raw, budget, scoring, statsData, numTeams, prevStatsData, projData));
+      setPlayers(buildPlayers(raw, budget, scoring, statsData, numTeams, prevStatsData, projData, adpData));
       setStatsData(statsData);
       setPrevStatsData(prevStatsData);
       setProjData(projData);
@@ -439,7 +464,7 @@ export default function Home() {
             ].map(s => (
               <button key={s.key} onClick={() => {
                 setScoring(s.key);
-                setPlayers(buildPlayers(rawPlayers, budget, s.key, statsData, numTeams, prevStatsData, projData));
+                setPlayers(buildPlayers(rawPlayers, budget, s.key, statsData, numTeams, prevStatsData, projData, adpData));
                 saveSettings({ theme, scoring: s.key, budget, num_teams: numTeams });
               }}
                 style={{...tabBtn(scoring===s.key,"linear-gradient(135deg,#6366f1,#8b5cf6)",C), padding:isMobile?"8px 12px":"10px 28px", fontSize:isMobile?11:13}}>
@@ -476,6 +501,7 @@ export default function Home() {
             toggleFav={toggleFav} setSelPlayer={setSelPlayer} budget={budget}
             capCeiling={capCeiling}
             numTeams={numTeams}
+            newsItems={newsItems}
           />
         )}
 
@@ -520,7 +546,7 @@ export default function Home() {
         onClose={() => setShowSettings(false)}
         showSettings={showSettings}
         onSave={(newBudget, newNumTeams) => {
-          setPlayers(buildPlayers(rawPlayers, newBudget, scoring, statsData, newNumTeams, prevStatsData, projData));
+          setPlayers(buildPlayers(rawPlayers, newBudget, scoring, statsData, newNumTeams, prevStatsData, projData, adpData));
           saveSettings({ theme, scoring, budget: newBudget, num_teams: newNumTeams });
         }}
       />

@@ -200,8 +200,22 @@ function blendStats(curr, prev, scoreKey, pos) {
 // ─────────────────────────────────────────────────────────────────────────────
 // BUILD PLAYERS
 // ─────────────────────────────────────────────────────────────────────────────
-export function buildPlayers(raw, budget, scoring = "ppr", statsData = {}, totalTeams = 12, prevStatsData = {}, projData = {}) {
+// Normalize a player name to a simple lowercase alpha key for ADP matching.
+function normName(n) {
+  return (n || "").toLowerCase().replace(/[^a-z]/g, "");
+}
+
+export function buildPlayers(raw, budget, scoring = "ppr", statsData = {}, totalTeams = 12, prevStatsData = {}, projData = {}, adpData = []) {
   const scoreKey   = scoring === "std" ? "pts_std" : scoring === "half" ? "pts_half_ppr" : "pts_ppr";
+
+  // Build ADP lookups: by Sleeper playerID (preferred) and normalized name (fallback)
+  const adpById   = {};
+  const adpByName = {};
+  adpData.forEach(entry => {
+    if (entry.playerID) adpById[entry.playerID] = entry;
+    const key = normName(entry.longName);
+    if (key) adpByName[key] = entry;
+  });
   const dynastyKey = "pts_half_ppr";
 
   return raw.map(p => {
@@ -298,6 +312,8 @@ export function buildPlayers(raw, budget, scoring = "ppr", statsData = {}, total
 
     const dpts = Math.max(15, Math.round(dynBase * dynastyMult));
 
+    const adpEntry = adpById[String(p.player_id)] ?? adpByName[normName((p.first_name || "") + (p.last_name || ""))];
+
     return {
       id: p.player_id,
       name: (p.first_name || "") + " " + (p.last_name || ""),
@@ -324,6 +340,7 @@ export function buildPlayers(raw, budget, scoring = "ppr", statsData = {}, total
       college: p.college || null,
       height: p.height || null,
       weight: p.weight || null,
+      adpRank: adpEntry?.adp ?? null,
     };
   }).filter(Boolean)
     .filter(p => p.team && p.team !== "FA" && p.team !== "")
