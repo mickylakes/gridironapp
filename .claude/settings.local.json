@@ -3,7 +3,8 @@
     "allow": [
       "Bash(npm run build:*)",
       "WebFetch(domain:rapidapi.com)",
-      "WebFetch(domain:www.tank01.com)"
+      "WebFetch(domain:www.tank01.com)",
+      "Bash(grep:*)"
     ]
   }
 }

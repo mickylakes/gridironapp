@@ -207,13 +207,20 @@ export default function RankingsTab({
               </div>
 
               <div style={{display:"flex",alignItems:"center",gap:10}}>
-                <div style={{width:3,height:40,borderRadius:2,background:pc(player.position),flexShrink:0}}/>
+                <div style={{width:3,borderRadius:2,background:pc(player.position),flexShrink:0,alignSelf:"stretch",minHeight:40}}/>
                 <div>
                   <div style={{fontWeight:700,fontSize:isMobile?12:14}}>{player.name}</div>
                   {isMobile
                     ? <div style={{fontSize:10,fontFamily:"monospace",color:C.textSec}}>{player.team}</div>
                     : (!!player.number && String(player.number) !== "0" && <div style={{fontSize:11,fontFamily:"monospace",color:C.textSec}}>#{player.number}</div>)
                   }
+                  {isMobile && (player.adpRank != null || player.byeWeek != null || player.projectedPts != null) && (
+                    <div style={{display:"flex",gap:8,marginTop:2,fontSize:10,fontFamily:"monospace",color:C.textSec}}>
+                      {player.adpRank != null && <span>ADP {player.adpRank.toFixed(1)}</span>}
+                      {player.byeWeek != null && <span>Bye {player.byeWeek}</span>}
+                      {player.projectedPts != null && <span>Proj {player.projectedPts.toFixed(0)}</span>}
+                    </div>
+                  )}
                 </div>
               </div>
 
