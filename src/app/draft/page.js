@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { TrendingUp, Users, Star, Sun, Moon, Settings, ClipboardList, Database, DollarSign } from "lucide-react";
+import { TrendingUp, Users, Star, Sun, Moon, Settings, ClipboardList, Database, DollarSign, Bug } from "lucide-react";
 import { DARK, LIGHT } from "@/constants/theme";
 import { buildPlayers, SAMPLES } from "@/utils/players";
 import { tabBtn } from "@/utils/styleHelpers";
@@ -14,6 +14,7 @@ import { createClient } from "@/lib/supabase";
 import AuthModal from "@/components/AuthModal";
 import { LogIn, LogOut } from "lucide-react";
 import CapSheetTab from "@/components/CapSheetTab";
+import BugReportModal from "@/components/BugReportModal";
 
 export default function Home() {
   const [players, setPlayers]     = useState([]);
@@ -37,6 +38,7 @@ export default function Home() {
   const [rawPlayers, setRawPlayers] = useState([]);
   const [user, setUser] = useState(null);
   const [showAuth, setShowAuth] = useState(false);
+  const [showBugReport, setShowBugReport] = useState(false);
 
   // Draft state
   const [draftStarted, setDraftStarted] = useState(false);
@@ -354,6 +356,56 @@ export default function Home() {
         <Settings size={18}/>
       </button>
 
+      {/* Auth button */}
+      {user ? (
+        <button onClick={handleSignOut}
+          style={{position:"fixed",top:16,right:112,zIndex:50,padding:"10px",borderRadius:12,border:"none",cursor:"pointer",background:C.themeBtnBg,color:C.textSec,boxShadow:"0 2px 8px rgba(0,0,0,0.2)"}}>
+          <LogOut size={18}/>
+        </button>
+      ) : (
+        <button onClick={() => setShowAuth(true)}
+          style={{position:"fixed",top:16,right:112,zIndex:50,padding:"10px",borderRadius:12,border:"none",cursor:"pointer",background:C.themeBtnBg,color:C.textSec,boxShadow:"0 2px 8px rgba(0,0,0,0.2)"}}>
+          <LogIn size={18}/>
+        </button>
+      )}
+
+      {/* Floating bug report button — bottom right, always visible */}
+      <button
+        onClick={() => setShowBugReport(true)}
+        title="Report a bug"
+        style={{
+          position: "fixed",
+          bottom: 24,
+          right: 24,
+          zIndex: 50,
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          padding: isMobile ? "12px" : "10px 16px",
+          borderRadius: isMobile ? "50%" : 12,
+          border: "1px solid rgba(239,68,68,0.3)",
+          cursor: "pointer",
+          background: "rgba(239,68,68,0.1)",
+          color: "#f87171",
+          boxShadow: "0 4px 16px rgba(239,68,68,0.2)",
+          fontSize: 13,
+          fontWeight: 700,
+          backdropFilter: "blur(8px)",
+          transition: "background 0.15s, box-shadow 0.15s",
+        }}
+        onMouseEnter={e => {
+          e.currentTarget.style.background = "rgba(239,68,68,0.2)";
+          e.currentTarget.style.boxShadow  = "0 4px 24px rgba(239,68,68,0.35)";
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.background = "rgba(239,68,68,0.1)";
+          e.currentTarget.style.boxShadow  = "0 4px 16px rgba(239,68,68,0.2)";
+        }}
+      >
+        <Bug size={isMobile ? 20 : 16} />
+        {!isMobile && "Report Bug"}
+      </button>
+
       <div style={{maxWidth:1280,margin:"0 auto",padding:"32px 16px"}}>
 
         {/* Header */}
@@ -473,8 +525,9 @@ export default function Home() {
         }}
       />
       {showAuth && <AuthModal C={C} onClose={() => setShowAuth(false)} onSuccess={() => setShowAuth(false)}/>}
+      {showBugReport && <BugReportModal C={C} user={user} onClose={() => setShowBugReport(false)} />}
 
-      <style>{"@keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.5} } *{box-sizing:border-box} body{margin:0}"}</style>
+      <style>{"@keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.5} } @keyframes spin { to { transform: rotate(360deg); } } *{box-sizing:border-box} body{margin:0}"}</style>
     </div>
   );
 }
