@@ -4,9 +4,11 @@ import { useRouter } from "next/navigation";
 import { TrendingUp, Zap, Clock, Users, Star, Shield, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import AuthModal from "@/components/AuthModal";
+import useWindowSize from "@/hooks/useWindowSize";
 
 export default function LandingPage() {
   const router = useRouter();
+  const { isMobile } = useWindowSize();
   const [hoveredFeature, setHoveredFeature] = useState(null);
   const [user, setUser] = useState(null);
   const [showAuth, setShowAuth] = useState(false);
@@ -41,46 +43,46 @@ async function handleSignOut() {
     <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#0f172a 0%,#1e1b4b 50%,#0f172a 100%)",color:"#f1f5f9",fontFamily:"system-ui,sans-serif"}}>
 
       {/* Nav */}
-      <nav style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"20px 40px",borderBottom:"1px solid #1e293b"}}>
-  <div style={{display:"flex",alignItems:"center",gap:10}}>
-    <TrendingUp size={24} color="#818cf8"/>
-    <span style={{fontSize:22,fontWeight:900,background:"linear-gradient(90deg,#818cf8,#c084fc,#f472b6)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>GRID IRON</span>
-  </div>
-  <div style={{display:"flex",gap:8,alignItems:"center"}}>
-    {user ? (
-      <>
-        <span style={{fontSize:13,color:"#94a3b8"}}>{user.email}</span>
-        <button
-          onClick={handleSignOut}
-          style={{padding:"8px 16px",borderRadius:10,border:"1px solid #1e293b",cursor:"pointer",background:"transparent",color:"#94a3b8",fontWeight:700,fontSize:13}}
-        >
-          Sign Out
-        </button>
-        <button
-          onClick={() => router.push("/draft")}
-          style={{padding:"10px 24px",borderRadius:12,border:"none",cursor:"pointer",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",fontWeight:700,fontSize:14,display:"flex",alignItems:"center",gap:6}}
-        >
-          Launch App <ChevronRight size={16}/>
-        </button>
-      </>
-    ) : (
-      <>
-        <button
-          onClick={() => setShowAuth(true)}
-          style={{padding:"10px 20px",borderRadius:12,border:"1px solid #1e293b",cursor:"pointer",background:"transparent",color:"#94a3b8",fontWeight:700,fontSize:14}}
-        >
-          Sign In
-        </button>
-        <button
-          onClick={() => router.push("/draft")}
-          style={{padding:"10px 24px",borderRadius:12,border:"none",cursor:"pointer",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",fontWeight:700,fontSize:14,display:"flex",alignItems:"center",gap:6}}
-        >
-          Launch App <ChevronRight size={16}/>
-        </button>
-      </>
-    )}
-  </div>
-</nav>
+      <nav style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:isMobile?"14px 16px":"20px 40px",borderBottom:"1px solid #1e293b"}}>
+        <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+          <TrendingUp size={isMobile?20:24} color="#818cf8"/>
+          <span style={{fontSize:isMobile?18:22,fontWeight:900,background:"linear-gradient(90deg,#818cf8,#c084fc,#f472b6)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>GRID IRON</span>
+        </div>
+        <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
+          {user ? (
+            <>
+              {!isMobile && <span style={{fontSize:13,color:"#94a3b8",maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.email}</span>}
+              <button
+                onClick={handleSignOut}
+                style={{padding:isMobile?"7px 10px":"8px 16px",borderRadius:10,border:"1px solid #1e293b",cursor:"pointer",background:"transparent",color:"#94a3b8",fontWeight:700,fontSize:isMobile?12:13,whiteSpace:"nowrap"}}
+              >
+                Sign Out
+              </button>
+              <button
+                onClick={() => router.push("/draft")}
+                style={{padding:isMobile?"7px 12px":"10px 24px",borderRadius:12,border:"none",cursor:"pointer",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",fontWeight:700,fontSize:isMobile?12:14,display:"flex",alignItems:"center",gap:4,whiteSpace:"nowrap"}}
+              >
+                Launch App <ChevronRight size={isMobile?13:16}/>
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => setShowAuth(true)}
+                style={{padding:isMobile?"7px 10px":"10px 20px",borderRadius:12,border:"1px solid #1e293b",cursor:"pointer",background:"transparent",color:"#94a3b8",fontWeight:700,fontSize:isMobile?12:14,whiteSpace:"nowrap"}}
+              >
+                Sign In
+              </button>
+              <button
+                onClick={() => router.push("/draft")}
+                style={{padding:isMobile?"7px 12px":"10px 24px",borderRadius:12,border:"none",cursor:"pointer",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",fontWeight:700,fontSize:isMobile?12:14,display:"flex",alignItems:"center",gap:4,whiteSpace:"nowrap"}}
+              >
+                Launch App <ChevronRight size={isMobile?13:16}/>
+              </button>
+            </>
+          )}
+        </div>
+      </nav>
 
       {/* Hero */}
       <div style={{textAlign:"center",padding:"80px 20px 60px"}}>

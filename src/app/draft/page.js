@@ -347,24 +347,24 @@ export default function Home() {
         setTheme(newTheme);
         saveSettings({ theme: newTheme, scoring, budget, num_teams: numTeams });
       }}
-        style={{position:"fixed",top:16,right:16,zIndex:50,padding:"10px",borderRadius:12,border:"none",cursor:"pointer",background:C.themeBtnBg,color:C.themeBtnCol,boxShadow:"0 2px 8px rgba(0,0,0,0.2)"}}>
+        style={{position:"fixed",top:12,right:12,zIndex:50,padding:isMobile?"8px":"10px",borderRadius:12,border:"none",cursor:"pointer",background:C.themeBtnBg,color:C.themeBtnCol,boxShadow:"0 2px 8px rgba(0,0,0,0.2)"}}>
         {dk ? <Sun size={18}/> : <Moon size={18}/>}
       </button>
 
       <button onClick={() => setShowSettings(true)}
-        style={{position:"fixed",top:16,right:64,zIndex:50,padding:"10px",borderRadius:12,border:"none",cursor:"pointer",background:C.themeBtnBg,color:C.settBtnCol,boxShadow:"0 2px 8px rgba(0,0,0,0.2)"}}>
+        style={{position:"fixed",top:12,right:isMobile?52:64,zIndex:50,padding:isMobile?"8px":"10px",borderRadius:12,border:"none",cursor:"pointer",background:C.themeBtnBg,color:C.settBtnCol,boxShadow:"0 2px 8px rgba(0,0,0,0.2)"}}>
         <Settings size={18}/>
       </button>
 
       {/* Auth button */}
       {user ? (
         <button onClick={handleSignOut}
-          style={{position:"fixed",top:16,right:112,zIndex:50,padding:"10px",borderRadius:12,border:"none",cursor:"pointer",background:C.themeBtnBg,color:C.textSec,boxShadow:"0 2px 8px rgba(0,0,0,0.2)"}}>
+          style={{position:"fixed",top:12,right:isMobile?92:112,zIndex:50,padding:isMobile?"8px":"10px",borderRadius:12,border:"none",cursor:"pointer",background:C.themeBtnBg,color:C.textSec,boxShadow:"0 2px 8px rgba(0,0,0,0.2)"}}>
           <LogOut size={18}/>
         </button>
       ) : (
         <button onClick={() => setShowAuth(true)}
-          style={{position:"fixed",top:16,right:112,zIndex:50,padding:"10px",borderRadius:12,border:"none",cursor:"pointer",background:C.themeBtnBg,color:C.textSec,boxShadow:"0 2px 8px rgba(0,0,0,0.2)"}}>
+          style={{position:"fixed",top:12,right:isMobile?92:112,zIndex:50,padding:isMobile?"8px":"10px",borderRadius:12,border:"none",cursor:"pointer",background:C.themeBtnBg,color:C.textSec,boxShadow:"0 2px 8px rgba(0,0,0,0.2)"}}>
           <LogIn size={18}/>
         </button>
       )}
@@ -406,7 +406,7 @@ export default function Home() {
         {!isMobile && "Report Bug"}
       </button>
 
-      <div style={{maxWidth:1280,margin:"0 auto",padding:"32px 16px"}}>
+      <div style={{maxWidth:1280,margin:"0 auto",padding:isMobile?"72px 16px 32px":"32px 16px"}}>
 
         {/* Header */}
         <div style={{textAlign:"center",marginBottom:32}}>
