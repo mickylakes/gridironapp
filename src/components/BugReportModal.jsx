@@ -14,6 +14,21 @@ const CATEGORIES = [
   { value: "other", label: "Other" },
 ];
 
+const DEVICES = [
+  { value: "mobile",  label: "📱 Mobile"  },
+  { value: "tablet",  label: "📲 Tablet"  },
+  { value: "desktop", label: "🖥️ Desktop" },
+];
+
+function detectDevice() {
+  const ua = navigator.userAgent;
+  const isTablet = /iPad/i.test(ua) || (/Android/i.test(ua) && !/Mobile/i.test(ua));
+  const isMobile = /Android.*Mobile|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+  if (isTablet) return "tablet";
+  if (isMobile) return "mobile";
+  return "desktop";
+}
+
 export default function BugReportModal({ C, user, onClose }) {
   const [category, setCategory]       = useState("");
   const [description, setDescription] = useState("");
@@ -21,6 +36,7 @@ export default function BugReportModal({ C, user, onClose }) {
   const [status, setStatus]           = useState("idle"); // idle | capturing | submitting | success | error
   const [errorMsg, setErrorMsg]       = useState("");
   const [catOpen, setCatOpen]         = useState(false);
+  const [device, setDevice]           = useState(() => detectDevice());
 
   const fileInputRef = useRef(null);
 
@@ -103,6 +119,7 @@ export default function BugReportModal({ C, user, onClose }) {
         url:       window.location.href,
         userAgent: navigator.userAgent,
         viewport:  `${window.innerWidth}x${window.innerHeight}`,
+        device,
         timestamp: new Date().toISOString(),
       };
 
@@ -125,7 +142,7 @@ export default function BugReportModal({ C, user, onClose }) {
       setErrorMsg("Something went wrong submitting the report. Please try again.");
       setStatus("error");
     }
-  }, [category, description, screenshot, user]);
+  }, [category, description, screenshot, user, device]);
 
   // ── Derived ───────────────────────────────────────────────────────────────
   const selectedLabel = CATEGORIES.find(c => c.value === category)?.label ?? "Select a category";
@@ -233,6 +250,31 @@ export default function BugReportModal({ C, user, onClose }) {
               ))}
             </div>
           )}
+        </div>
+
+        {/* Device toggle */}
+        <div style={{ marginBottom: 16 }}>
+          <label style={labelStyle(C)}>
+            Device
+            <span style={{ fontWeight: 400, color: C.textSec, marginLeft: 6 }}>(auto-detected)</span>
+          </label>
+          <div style={{ display: "inline-flex", background: C.inputBg, border: "1px solid " + C.border, borderRadius: 10, padding: 3, gap: 2 }}>
+            {DEVICES.map(d => (
+              <button
+                key={d.value}
+                onClick={() => setDevice(d.value)}
+                style={{
+                  padding: "7px 14px", borderRadius: 8, border: "none", cursor: "pointer",
+                  fontWeight: 700, fontSize: 12,
+                  background: device === d.value ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "transparent",
+                  color: device === d.value ? "#fff" : C.textSec,
+                  transition: "all 0.15s",
+                }}
+              >
+                {d.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Description */}
