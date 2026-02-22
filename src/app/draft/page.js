@@ -501,19 +501,19 @@ export default function Home() {
         </div>
 
         {/* Tab bar */}
-        <div style={{display:"flex",justifyContent:"center",marginBottom:32}}>
-          <div style={{display:"inline-flex",background:C.cardBg,border:"1px solid "+C.border,borderRadius:14,padding:4}}>
-            <button onClick={() => setActiveTab("rankings")} style={tabBtn(activeTab==="rankings","linear-gradient(135deg,#6366f1,#8b5cf6)",C)}>
-              <TrendingUp size={15}/> RANKINGS
+        <div style={{display:"flex",justifyContent:"center",marginBottom:32,padding:isMobile?"0 12px":0}}>
+          <div style={{display:"flex",width:isMobile?"100%":"auto",background:C.cardBg,border:"1px solid "+C.border,borderRadius:14,padding:4}}>
+            <button onClick={() => setActiveTab("rankings")} style={{...tabBtn(activeTab==="rankings","linear-gradient(135deg,#6366f1,#8b5cf6)",C),flex:isMobile?1:undefined,justifyContent:"center",padding:isMobile?"8px 10px":"10px 28px",fontSize:isMobile?11:13}}>
+              <TrendingUp size={isMobile?13:15}/> {isMobile?"RANKS":"RANKINGS"}
             </button>
-            <button onClick={() => setActiveTab("draftboard")} style={tabBtn(activeTab==="draftboard","linear-gradient(135deg,#10b981,#0d9488)",C)}>
-              <ClipboardList size={15}/> DRAFT BOARD
+            <button onClick={() => setActiveTab("draftboard")} style={{...tabBtn(activeTab==="draftboard","linear-gradient(135deg,#10b981,#0d9488)",C),flex:isMobile?1:undefined,justifyContent:"center",padding:isMobile?"8px 10px":"10px 28px",fontSize:isMobile?11:13}}>
+              <ClipboardList size={isMobile?13:15}/> {isMobile?"DRAFT":"DRAFT BOARD"}
               {draftStarted && draftType !== "auction" && (
                 <span style={{padding:"1px 7px",borderRadius:20,fontSize:11,background:"rgba(16,185,129,0.2)",color:"#34d399",border:"1px solid rgba(16,185,129,0.3)"}}>{pickIndex}/{totalPicks}</span>
               )}
             </button>
-            <button onClick={() => setActiveTab("capsheet")} style={tabBtn(activeTab==="capsheet","linear-gradient(135deg,#10b981,#0d9488)",C)}>
-              <DollarSign size={15}/> CAP SHEET
+            <button onClick={() => setActiveTab("capsheet")} style={{...tabBtn(activeTab==="capsheet","linear-gradient(135deg,#10b981,#0d9488)",C),flex:isMobile?1:undefined,justifyContent:"center",padding:isMobile?"8px 10px":"10px 28px",fontSize:isMobile?11:13}}>
+              <DollarSign size={isMobile?13:15}/> {isMobile?"CAP":"CAP SHEET"}
             </button>
           </div>
         </div>
