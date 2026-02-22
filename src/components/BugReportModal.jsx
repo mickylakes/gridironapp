@@ -114,6 +114,7 @@ export default function BugReportModal({ C, user, onClose }) {
         screenshot_url:  screenshotUrl,
         sentry_event_id: sentryEventId,
         metadata,
+        status:          "open",
       });
 
       if (dbError) throw dbError;
@@ -144,9 +145,18 @@ export default function BugReportModal({ C, user, onClose }) {
             }}>
               <CheckCircle size={32} color="#34d399" />
             </div>
-            <h2 style={{ margin: "0 0 8px", fontSize: 20, fontWeight: 800, color: C.textPri }}>
+            <h2 style={{ margin: "0 0 12px", fontSize: 20, fontWeight: 800, color: C.textPri }}>
               Report submitted!
             </h2>
+            <div style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              background: "rgba(234,179,8,0.15)", border: "1px solid rgba(234,179,8,0.3)",
+              borderRadius: 20, padding: "4px 12px", fontSize: 12, fontWeight: 700,
+              color: "#fbbf24", marginBottom: 16,
+            }}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#fbbf24", display: "inline-block" }} />
+              Status: Open
+            </div>
             <p style={{ margin: "0 0 24px", color: C.textSec, fontSize: 14, lineHeight: 1.6 }}>
               Thanks for helping improve Grid Iron. We'll look into this as soon as possible.
             </p>
