@@ -370,7 +370,7 @@ export default function PlayerModal({ C, player, favorites, toggleFav, onClose, 
                 <div style={{fontSize:18,fontWeight:900,color:"#34d399"}}>✓ Healthy</div>
               </div>
             )}
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
               <div style={{padding:14,borderRadius:12,border:"1px solid "+C.border,background:C.statBg}}>
                 <div style={{fontSize:10,fontFamily:"monospace",color:C.textSec,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:6}}>Roster Status</div>
                 <div style={{fontSize:16,fontWeight:800,color:C.textPri}}>{player.status || "Active"}</div>
@@ -379,6 +379,12 @@ export default function PlayerModal({ C, player, favorites, toggleFav, onClose, 
                 <div style={{fontSize:10,fontFamily:"monospace",color:C.textSec,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:6}}>Depth Chart</div>
                 <div style={{fontSize:16,fontWeight:800,color:C.textPri}}>
                   {player.depthChartOrder ? `#${player.depthChartOrder} ${player.depthChartPosition||player.position}` : "—"}
+                </div>
+              </div>
+              <div style={{padding:14,borderRadius:12,border:"1px solid "+C.border,background:C.statBg}}>
+                <div style={{fontSize:10,fontFamily:"monospace",color:C.textSec,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:6}}>Bye Week</div>
+                <div style={{fontSize:16,fontWeight:800,color:C.textPri}}>
+                  {player.byeWeek != null ? `Week ${player.byeWeek}` : "—"}
                 </div>
               </div>
             </div>
@@ -392,6 +398,7 @@ export default function PlayerModal({ C, player, favorites, toggleFav, onClose, 
                 { label:"Weight",     value: player.weight ? `${player.weight} lbs` : "—" },
                 { label:"Age",        value: player.age ? `${player.age} yrs` : "—" },
                 { label:"Experience", value: `${player.yearsExp} year${player.yearsExp!==1?"s":""}` },
+                ...(player.projectedPts != null ? [{ label:"Projected Pts", value: `${player.projectedPts.toFixed(0)} pts (halfPPR)` }] : []),
               ].map(({label, value}) => (
                 <div key={label} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"11px 16px",borderTop:"1px solid "+C.border}}>
                   <span style={{fontSize:12,color:C.textSec,fontFamily:"monospace"}}>{label}</span>

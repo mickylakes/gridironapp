@@ -58,11 +58,11 @@ export default function RankingsTab({
     a.click();
   }
 
-  // Desktop: star | player | pos | team | age | adp | pts | cap | tier
+  // Desktop: star | player | pos | team | age | adp | bye | proj | pts | cap | tier
   // Mobile:  star | player | pos | pts
   const cols = isMobile
     ? "40px 1fr 70px 80px"
-    : "40px 1fr 70px 60px 80px 70px 100px 110px 70px";
+    : "40px 1fr 70px 60px 80px 70px 60px 70px 100px 110px 70px";
 
   return (
     <div>
@@ -173,6 +173,8 @@ export default function RankingsTab({
           {!isMobile && <div style={{textAlign:"center"}}>Team</div>}
           {!isMobile && <div style={{textAlign:"center"}}>Age/Exp</div>}
           {!isMobile && <div style={{textAlign:"center"}}>ADP</div>}
+          {!isMobile && <div style={{textAlign:"center"}}>Bye</div>}
+          {!isMobile && <div style={{textAlign:"center"}}>Proj</div>}
           <div style={{textAlign:"center"}}>Pts</div>
           {!isMobile && <div style={{textAlign:"center"}}>Cap Value</div>}
           {!isMobile && <div style={{textAlign:"center"}}>Tier</div>}
@@ -235,6 +237,32 @@ export default function RankingsTab({
                     ? <>
                         <span style={{fontWeight:700,fontSize:13,color:C.textPri}}>{player.adpRank.toFixed(1)}</span>
                         <span style={{fontFamily:"monospace",fontSize:10,color:C.textSec}}>ADP</span>
+                      </>
+                    : <span style={{fontSize:13,color:C.dashCol}}>—</span>
+                  }
+                </div>
+              )}
+
+              {/* Bye Week column — desktop only */}
+              {!isMobile && (
+                <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+                  {player.byeWeek != null
+                    ? <>
+                        <span style={{fontWeight:700,fontSize:13,color:C.textPri}}>{player.byeWeek}</span>
+                        <span style={{fontFamily:"monospace",fontSize:10,color:C.textSec}}>BYE</span>
+                      </>
+                    : <span style={{fontSize:13,color:C.dashCol}}>—</span>
+                  }
+                </div>
+              )}
+
+              {/* Projected Pts column — desktop only */}
+              {!isMobile && (
+                <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+                  {player.projectedPts != null
+                    ? <>
+                        <span style={{fontWeight:700,fontSize:13,color:C.textPri}}>{player.projectedPts.toFixed(0)}</span>
+                        <span style={{fontFamily:"monospace",fontSize:10,color:C.textSec}}>PROJ</span>
                       </>
                     : <span style={{fontSize:13,color:C.dashCol}}>—</span>
                   }

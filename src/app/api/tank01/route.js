@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAdp, getNews } from "@/utils/tank01";
+import { getAdp, getNews, getByeWeeks, getPlayerInfo, getProjections } from "@/utils/tank01";
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
@@ -16,8 +16,23 @@ export async function GET(request) {
       return NextResponse.json(data);
     }
 
+    if (type === "bye") {
+      const data = await getByeWeeks();
+      return NextResponse.json(data);
+    }
+
+    if (type === "playerinfo") {
+      const data = await getPlayerInfo();
+      return NextResponse.json(data);
+    }
+
+    if (type === "projections") {
+      const data = await getProjections();
+      return NextResponse.json(data);
+    }
+
     return NextResponse.json(
-      { error: "Invalid type. Use ?type=adp or ?type=news" },
+      { error: "Invalid type. Use ?type=adp|news|bye|playerinfo|projections" },
       { status: 400 },
     );
   } catch (err) {

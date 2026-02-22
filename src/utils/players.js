@@ -205,7 +205,7 @@ function normName(n) {
   return (n || "").toLowerCase().replace(/[^a-z]/g, "");
 }
 
-export function buildPlayers(raw, budget, scoring = "ppr", statsData = {}, totalTeams = 12, prevStatsData = {}, projData = {}, adpData = []) {
+export function buildPlayers(raw, budget, scoring = "ppr", statsData = {}, totalTeams = 12, prevStatsData = {}, projData = {}, adpData = [], byeData = {}, playerInfoData = [], tank01Proj = []) {
   const scoreKey   = scoring === "std" ? "pts_std" : scoring === "half" ? "pts_half_ppr" : "pts_ppr";
 
   // Build ADP lookups: by Sleeper playerID (preferred) and normalized name (fallback)
@@ -215,6 +215,24 @@ export function buildPlayers(raw, budget, scoring = "ppr", statsData = {}, total
     if (entry.playerID) adpById[entry.playerID] = entry;
     const key = normName(entry.longName);
     if (key) adpByName[key] = entry;
+  });
+
+  // Build Player Info lookups (injury status + bye week from Tank01)
+  const infoById   = {};
+  const infoByName = {};
+  playerInfoData.forEach(entry => {
+    if (entry.playerID) infoById[entry.playerID] = entry;
+    const key = normName(entry.longName);
+    if (key) infoByName[key] = entry;
+  });
+
+  // Build Projections lookups
+  const projById   = {};
+  const projByName = {};
+  tank01Proj.forEach(entry => {
+    if (entry.playerID) projById[entry.playerID] = entry;
+    const key = normName(entry.longName);
+    if (key) projByName[key] = entry;
   });
   const dynastyKey = "pts_half_ppr";
 
@@ -312,7 +330,10 @@ export function buildPlayers(raw, budget, scoring = "ppr", statsData = {}, total
 
     const dpts = Math.max(15, Math.round(dynBase * dynastyMult));
 
-    const adpEntry = adpById[String(p.player_id)] ?? adpByName[normName((p.first_name || "") + (p.last_name || ""))];
+    const playerName = normName((p.first_name || "") + (p.last_name || ""));
+    const adpEntry  = adpById[String(p.player_id)]  ?? adpByName[playerName];
+    const infoEntry = infoById[String(p.player_id)] ?? infoByName[playerName];
+    const projEntry = projById[String(p.player_id)] ?? projByName[playerName];
 
     return {
       id: p.player_id,
@@ -332,14 +353,19 @@ export function buildPlayers(raw, budget, scoring = "ppr", statsData = {}, total
       isIdp,
       scoring,
       status: p.status || null,
-      injuryStatus: p.injury_status || null,
-      injuryBodyPart: p.injury_body_part || null,
-      injuryNotes: p.injury_notes || null,
+      // Tank01 injury data overrides stale Sleeper data when available
+      injuryStatus:   infoEntry?.injuryStatus   ?? p.injury_status    ?? null,
+      injuryBodyPart: infoEntry?.injuryBodyPart ?? p.injury_body_part ?? null,
+      injuryNotes:    infoEntry?.injuryNotes    ?? p.injury_notes     ?? null,
       depthChartOrder: depthOrder,
       depthChartPosition: p.depth_chart_position || null,
       college: p.college || null,
       height: p.height || null,
       weight: p.weight || null,
+      // Bye week: from Tank01 playerInfo first, then team-level bye map fallback
+      byeWeek: infoEntry?.byeWeek ?? byeData[p.team] ?? null,
+      // Tank01 projected season fantasy points (halfPPR)
+      projectedPts: projEntry?.fantasyPoints ?? null,
       adpRank: adpEntry?.adp ?? null,
     };
   }).filter(Boolean)
