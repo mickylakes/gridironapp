@@ -5,6 +5,9 @@ import { pc, ti } from "@/constants/theme";
 import { calcIdpPoints, IDP_POSITIONS, capSalaryValue, capSalaryValueDynasty } from "@/utils/players";
 
 const CURRENT_YEAR = new Date().getFullYear();
+
+// Module-level cache: persists across modal opens for the session
+const weeklyStatsCache = {};
 const STATS_YEARS = [
   CURRENT_YEAR - 1,
   CURRENT_YEAR - 2,
@@ -71,7 +74,12 @@ export default function PlayerModal({ C, player, favorites, toggleFav, onClose, 
   async function fetchWeeklyStats(year) {
     if (expandedYear === year) { setExpandedYear(null); return; }
     setExpandedYear(year);
+    const cacheKey = `${player.id}_${year}`;
     if (weeklyData[year]) return;
+    if (weeklyStatsCache[cacheKey]) {
+      setWeeklyData(prev => ({ ...prev, [year]: weeklyStatsCache[cacheKey] }));
+      return;
+    }
     setLoadingWeekly(year);
     const results = [];
     await Promise.all(
@@ -86,6 +94,7 @@ export default function PlayerModal({ C, player, favorites, toggleFav, onClose, 
       })
     );
     results.sort((a, b) => a.week - b.week);
+    weeklyStatsCache[cacheKey] = results;
     setWeeklyData(prev => ({ ...prev, [year]: results }));
     setLoadingWeekly(null);
   }
