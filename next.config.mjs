@@ -21,8 +21,8 @@ const CSP = [
   // Block all plugins and iframing of this app.
   "object-src 'none'",
   "frame-ancestors 'none'",
-  // Turbopack spins up a blob: web worker for HMR in development only.
-  ...(isDev ? ["worker-src blob:"] : []),
+  // Sentry session replay uses a blob: web worker in all environments.
+  "worker-src blob:",
 ].join("; ");
 
 /** @type {import('next').NextConfig} */

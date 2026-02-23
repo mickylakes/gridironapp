@@ -119,7 +119,8 @@ export async function getByeWeeks() {
     await setCache("bye", result);
     return result;
   } catch (err) {
-    console.error("[tank01] getByeWeeks error:", err);
+    // 404 is expected in the offseason — bye weeks aren't published yet
+    if (!err.message?.includes("404")) console.error("[tank01] getByeWeeks error:", err);
     return cached?.data ?? {};
   }
 }
