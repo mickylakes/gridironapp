@@ -6,8 +6,9 @@ import { calcIdpPoints, IDP_POSITIONS, capSalaryValue, capSalaryValueDynasty } f
 
 const CURRENT_YEAR = new Date().getFullYear();
 
-// Module-level cache: persists across modal opens for the session
-const weeklyStatsCache = {};
+// Module-level caches: persist across modal opens for the whole browser session
+const yearDataCache    = {}; // year -> { players, schedule } from static JSON
+const weeklyStatsCache = {}; // fallback: "playerId_year" -> week array (live Sleeper API)
 const STATS_YEARS = [
   CURRENT_YEAR - 1,
   CURRENT_YEAR - 2,
@@ -38,6 +39,7 @@ export default function PlayerModal({ C, player, favorites, toggleFav, onClose, 
   const [historyScoring, setHistoryScoring] = useState("pts_half_ppr");
   const [expandedYear, setExpandedYear]     = useState(null);
   const [weeklyData, setWeeklyData]         = useState({});
+  const [scheduleData, setScheduleData]     = useState({});
   const [loadingWeekly, setLoadingWeekly]   = useState(null);
 
   // All hooks first — early return after
@@ -48,6 +50,7 @@ export default function PlayerModal({ C, player, favorites, toggleFav, onClose, 
     setHistoryScoring("pts_half_ppr");
     setExpandedYear(null);
     setWeeklyData({});
+    setScheduleData({});
     setLoadingWeekly(null);
     fetchHistory();
   }, [player?.id]);
@@ -74,13 +77,32 @@ export default function PlayerModal({ C, player, favorites, toggleFav, onClose, 
   async function fetchWeeklyStats(year) {
     if (expandedYear === year) { setExpandedYear(null); return; }
     setExpandedYear(year);
-    const cacheKey = `${player.id}_${year}`;
     if (weeklyData[year]) return;
-    if (weeklyStatsCache[cacheKey]) {
-      setWeeklyData(prev => ({ ...prev, [year]: weeklyStatsCache[cacheKey] }));
+    setLoadingWeekly(year);
+
+    // ── Primary: load from pre-built static JSON (zero Sleeper API calls) ──
+    if (!yearDataCache[year]) {
+      try {
+        const res = await fetch(`/data/weeklyStats_${year}.json`);
+        if (res.ok) yearDataCache[year] = await res.json();
+      } catch { /* file not generated yet, fall through to live API */ }
+    }
+    if (yearDataCache[year]) {
+      const yearData    = yearDataCache[year];
+      const playerWeeks = yearData.players?.[player.id] || [];
+      setWeeklyData(prev  => ({ ...prev, [year]: playerWeeks }));
+      setScheduleData(prev => ({ ...prev, [year]: yearData.schedule || {} }));
+      setLoadingWeekly(null);
       return;
     }
-    setLoadingWeekly(year);
+
+    // ── Fallback: fetch live from Sleeper (used if JSON not generated yet) ──
+    const cacheKey = `${player.id}_${year}`;
+    if (weeklyStatsCache[cacheKey]) {
+      setWeeklyData(prev => ({ ...prev, [year]: weeklyStatsCache[cacheKey] }));
+      setLoadingWeekly(null);
+      return;
+    }
     const results = [];
     await Promise.all(
       Array.from({ length: 18 }, (_, i) => i + 1).map(async (week) => {
@@ -396,6 +418,7 @@ export default function PlayerModal({ C, player, favorites, toggleFav, onClose, 
                                   <thead>
                                     <tr style={{color:C.textSec,fontFamily:"monospace",fontSize:10,textTransform:"uppercase",letterSpacing:"0.05em"}}>
                                       <td style={{paddingBottom:8,paddingRight:12,whiteSpace:"nowrap"}}>Wk</td>
+                                      <td style={{paddingBottom:8,paddingRight:12,whiteSpace:"nowrap"}}>Opp</td>
                                       <td style={{paddingBottom:8,paddingRight:12,textAlign:"right",whiteSpace:"nowrap",color:posColor}}>Pts</td>
                                       {gameCols.map(c => (
                                         <td key={c.key} style={{paddingBottom:8,paddingRight:12,textAlign:"right",whiteSpace:"nowrap"}}>{c.label}</td>
@@ -405,9 +428,24 @@ export default function PlayerModal({ C, player, favorites, toggleFav, onClose, 
                                   <tbody>
                                     {weeks.map(({week, stats}) => {
                                       const wpts = getDisplayPts(stats, historyScoring);
+                                      const opp  = scheduleData[expandedYear]?.[String(week)]?.[player.team] || null;
                                       return (
                                         <tr key={week} style={{borderTop:"1px solid "+C.border}}>
                                           <td style={{padding:"7px 12px 7px 0",fontWeight:700,color:C.textSec,fontFamily:"monospace"}}>{week}</td>
+                                          <td style={{padding:"7px 12px 7px 0"}}>
+                                            {opp ? (
+                                              <img
+                                                src={`https://sleepercdn.com/images/team_logos/nfl/${opp}.jpg`}
+                                                alt={opp}
+                                                title={opp}
+                                                width={22}
+                                                height={22}
+                                                style={{display:"block",objectFit:"contain",borderRadius:3}}
+                                                onError={e => { e.target.style.display="none"; e.target.nextSibling.style.display="inline"; }}
+                                              />
+                                            ) : null}
+                                            <span style={{display:"none",fontSize:10,fontFamily:"monospace",color:C.textSec}}>{opp || "—"}</span>
+                                          </td>
                                           <td style={{padding:"7px 12px 7px 0",textAlign:"right",fontWeight:900,color:posColor}}>{wpts > 0 ? wpts : "—"}</td>
                                           {gameCols.map(c => {
                                             const val = stats[c.key];
