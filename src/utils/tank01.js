@@ -154,9 +154,9 @@ export async function getPlayerInfo() {
       longName:       p.longName      || p.playerName      || p.name || "",
       team:           p.team          || p.nflTeam          || "",
       pos:            p.pos           || p.position         || "",
-      injuryStatus:   p.injury        || p.injuryStatus     || p.injuryDesignation || null,
-      injuryBodyPart: p.injuryBodyPart|| p.injury_body_part || null,
-      injuryNotes:    p.injuryNotes   || p.injury_notes     || p.injuryDescription || null,
+      injuryStatus:   (typeof p.injury === "object" ? p.injury?.designation : p.injury) || p.injuryStatus || p.injuryDesignation || null,
+      injuryBodyPart: p.injuryBodyPart || p.injury_body_part || null,
+      injuryNotes:    p.injuryNotes || p.injury_notes || (typeof p.injury === "object" ? p.injury?.description : null) || p.injuryDescription || null,
       byeWeek:        parseInt(p.byeWeek || p.bye || p.byeWeekNumber || 0, 10) || null,
     })).filter(p => p.playerID || p.longName);
 

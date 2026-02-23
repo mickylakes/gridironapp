@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Star, TrendingUp, ShieldAlert, Loader, User } from "lucide-react";
+import { Star, TrendingUp, ShieldAlert, Loader, User, ChevronDown, ChevronRight } from "lucide-react";
 import { pc, ti } from "@/constants/theme";
 import { calcIdpPoints, IDP_POSITIONS, capSalaryValue, capSalaryValueDynasty } from "@/utils/players";
 
@@ -33,6 +33,9 @@ export default function PlayerModal({ C, player, favorites, toggleFav, onClose, 
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [activeTab, setActiveTab]           = useState("overview");
   const [historyScoring, setHistoryScoring] = useState("pts_half_ppr");
+  const [expandedYear, setExpandedYear]     = useState(null);
+  const [weeklyData, setWeeklyData]         = useState({});
+  const [loadingWeekly, setLoadingWeekly]   = useState(null);
 
   // All hooks first — early return after
   useEffect(() => {
@@ -40,6 +43,9 @@ export default function PlayerModal({ C, player, favorites, toggleFav, onClose, 
     setRawHistory({});
     setActiveTab("overview");
     setHistoryScoring("pts_half_ppr");
+    setExpandedYear(null);
+    setWeeklyData({});
+    setLoadingWeekly(null);
     fetchHistory();
   }, [player?.id]);
 
@@ -60,6 +66,28 @@ export default function PlayerModal({ C, player, favorites, toggleFav, onClose, 
     );
     setRawHistory(results);
     setLoadingHistory(false);
+  }
+
+  async function fetchWeeklyStats(year) {
+    if (expandedYear === year) { setExpandedYear(null); return; }
+    setExpandedYear(year);
+    if (weeklyData[year]) return;
+    setLoadingWeekly(year);
+    const results = [];
+    await Promise.all(
+      Array.from({ length: 18 }, (_, i) => i + 1).map(async (week) => {
+        try {
+          const res = await fetch(`https://api.sleeper.app/v1/stats/nfl/regular/${year}/${week}`);
+          if (!res.ok) return;
+          const data = await res.json();
+          const s = data[player.id];
+          if (s && Object.keys(s).length > 0) results.push({ week, stats: s });
+        } catch { /* unavailable */ }
+      })
+    );
+    results.sort((a, b) => a.week - b.week);
+    setWeeklyData(prev => ({ ...prev, [year]: results }));
+    setLoadingWeekly(null);
   }
 
   // Early return AFTER all hooks
@@ -105,6 +133,18 @@ export default function PlayerModal({ C, player, favorites, toggleFav, onClose, 
   const scoringLabel = isIdp
     ? "IDP Pts"
     : (SCORING_OPTIONS.find(s => s.key === historyScoring)?.label || "Half PPR");
+
+  const GAME_COLS = {
+    QB: [{ key:"pass_yd",label:"Pass Yds"},{key:"pass_td",label:"Pass TD"},{key:"pass_int",label:"INT"},{key:"rush_yd",label:"Rush Yds"},{key:"rush_td",label:"Rush TD"}],
+    RB: [{ key:"rush_yd",label:"Rush Yds"},{key:"rush_td",label:"Rush TD"},{key:"rec",label:"Rec"},{key:"rec_yd",label:"Rec Yds"},{key:"rec_td",label:"Rec TD"}],
+    WR: [{ key:"rec_tgt",label:"Tgts"},{key:"rec",label:"Rec"},{key:"rec_yd",label:"Rec Yds"},{key:"rec_td",label:"Rec TD"},{key:"rush_yd",label:"Rush Yds"}],
+    TE: [{ key:"rec_tgt",label:"Tgts"},{key:"rec",label:"Rec"},{key:"rec_yd",label:"Rec Yds"},{key:"rec_td",label:"Rec TD"}],
+    K:  [{ key:"fgm",label:"FGM"},{key:"fga",label:"FGA"},{key:"xpm",label:"XPM"}],
+    DL: [{ key:"idp_tkl",label:"Tkl"},{key:"idp_sack",label:"Sack"},{key:"idp_qb_hit",label:"QB Hit"},{key:"idp_int",label:"INT"},{key:"idp_pd",label:"PD"}],
+    LB: [{ key:"idp_tkl",label:"Tkl"},{key:"idp_tkl_ast",label:"Ast"},{key:"idp_sack",label:"Sack"},{key:"idp_int",label:"INT"},{key:"idp_pd",label:"PD"},{key:"idp_ff",label:"FF"}],
+    DB: [{ key:"idp_tkl",label:"Tkl"},{key:"idp_tkl_ast",label:"Ast"},{key:"idp_int",label:"INT"},{key:"idp_pd",label:"PD"},{key:"idp_ff",label:"FF"}],
+  };
+  const gameCols = GAME_COLS[player.position] || GAME_COLS.WR;
 
   // IDP breakdown for overview — use most recent year with data
   const latestIdpYear = STATS_YEARS.find(y => rawHistory[y] && calcIdpPoints(rawHistory[y]) > 0);
@@ -287,33 +327,96 @@ export default function PlayerModal({ C, player, favorites, toggleFav, onClose, 
               <>
                 {/* Bar chart */}
                 <div style={{display:"flex",alignItems:"flex-end",gap:8,height:160,marginBottom:16}}>
-                  {historyEntries.map(({year,pts}) => (
-                    <div key={year} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
-                      <div style={{fontSize:12,fontWeight:800,color:pts>0?posColor:C.dashCol}}>{pts>0?pts:"-"}</div>
-                      <div style={{width:"100%",borderRadius:"6px 6px 0 0",background:pts>0?`linear-gradient(180deg,${posColor},${posColor}88)`:C.border,height:Math.max(4,(pts/maxPts)*130)+"px",opacity:pts>0?1:0.3,transition:"height 0.3s ease"}}/>
-                      <div style={{fontSize:11,fontFamily:"monospace",color:C.textSec,fontWeight:700}}>{year}</div>
-                    </div>
-                  ))}
+                  {historyEntries.map(({year,pts}) => {
+                    const isSelected = expandedYear === year;
+                    return (
+                      <div key={year} onClick={() => pts > 0 && fetchWeeklyStats(year)} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:6,cursor:pts>0?"pointer":"default"}}>
+                        <div style={{fontSize:12,fontWeight:800,color:pts>0?posColor:C.dashCol}}>{pts>0?pts:"-"}</div>
+                        <div style={{width:"100%",borderRadius:"6px 6px 0 0",background:pts>0?`linear-gradient(180deg,${posColor},${posColor}88)`:C.border,height:Math.max(4,(pts/maxPts)*130)+"px",opacity:pts>0?(isSelected?1:0.65):0.3,outline:isSelected?`2px solid ${posColor}`:"none",transition:"height 0.3s ease, opacity 0.15s ease"}}/>
+                        <div style={{fontSize:11,fontFamily:"monospace",color:isSelected?posColor:C.textSec,fontWeight:700}}>{year}</div>
+                      </div>
+                    );
+                  })}
                 </div>
 
                 {/* Points table */}
                 <div style={{borderRadius:12,border:"1px solid "+C.border,overflow:"hidden"}}>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",padding:"10px 16px",background:C.headerBg,fontSize:11,fontFamily:"monospace",color:C.textSec,textTransform:"uppercase",letterSpacing:"0.05em"}}>
+                  <div style={{display:"grid",gridTemplateColumns:"1.2fr 1fr 1fr 28px",padding:"10px 16px",background:C.headerBg,fontSize:11,fontFamily:"monospace",color:C.textSec,textTransform:"uppercase",letterSpacing:"0.05em"}}>
                     <span>Season</span>
                     <span style={{textAlign:"center"}}>{scoringLabel}</span>
                     <span style={{textAlign:"right"}}>vs Avg</span>
+                    <span/>
                   </div>
                   {historyEntries.map(({year, pts}) => {
                     const valid = historyEntries.filter(e => e.pts > 0);
                     const avg   = valid.reduce((s,e) => s+e.pts, 0) / Math.max(1, valid.length);
                     const diff  = pts > 0 ? pts - avg : null;
+                    const isOpen = expandedYear === year;
+                    const weeks  = weeklyData[year] || [];
                     return (
-                      <div key={year} style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",padding:"12px 16px",borderTop:"1px solid "+C.border,fontSize:13}}>
-                        <span style={{fontWeight:700,color:C.textPri}}>{year}</span>
-                        <span style={{textAlign:"center",fontWeight:900,color:pts>0?posColor:C.textSec}}>{pts>0?pts:"—"}</span>
-                        <span style={{textAlign:"right",fontSize:12,fontWeight:700,color:diff===null?"transparent":diff>=0?"#34d399":"#ef4444"}}>
-                          {diff!==null?(diff>=0?"+":"")+diff.toFixed(1):"—"}
-                        </span>
+                      <div key={year}>
+                        {/* Season row */}
+                        <div
+                          onClick={() => pts > 0 && fetchWeeklyStats(year)}
+                          style={{display:"grid",gridTemplateColumns:"1.2fr 1fr 1fr 28px",padding:"12px 16px",borderTop:"1px solid "+C.border,fontSize:13,cursor:pts>0?"pointer":"default",background:isOpen?"rgba(255,255,255,0.03)":"transparent",transition:"background 0.15s"}}
+                        >
+                          <span style={{fontWeight:700,color:isOpen?posColor:C.textPri,display:"flex",alignItems:"center",gap:6}}>
+                            {year}
+                          </span>
+                          <span style={{textAlign:"center",fontWeight:900,color:pts>0?posColor:C.textSec}}>{pts>0?pts:"—"}</span>
+                          <span style={{textAlign:"right",fontSize:12,fontWeight:700,color:diff===null?"transparent":diff>=0?"#34d399":"#ef4444"}}>
+                            {diff!==null?(diff>=0?"+":"")+diff.toFixed(1):"—"}
+                          </span>
+                          <span style={{display:"flex",alignItems:"center",justifyContent:"center",color:C.textSec}}>
+                            {pts > 0 && (isOpen ? <ChevronDown size={14}/> : <ChevronRight size={14}/>)}
+                          </span>
+                        </div>
+
+                        {/* Game log */}
+                        {isOpen && (
+                          <div style={{borderTop:"1px solid "+C.border,background:C.statBg,padding:"12px 16px"}}>
+                            {loadingWeekly === year ? (
+                              <div style={{display:"flex",alignItems:"center",gap:8,color:C.textSec,fontSize:12,padding:"8px 0"}}>
+                                <Loader size={14} style={{animation:"spin 1s linear infinite"}}/> Loading game log...
+                              </div>
+                            ) : weeks.length === 0 ? (
+                              <div style={{fontSize:12,color:C.textSec,padding:"4px 0"}}>No weekly data available.</div>
+                            ) : (
+                              <div style={{overflowX:"auto"}}>
+                                <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                                  <thead>
+                                    <tr style={{color:C.textSec,fontFamily:"monospace",fontSize:10,textTransform:"uppercase",letterSpacing:"0.05em"}}>
+                                      <td style={{paddingBottom:8,paddingRight:12,whiteSpace:"nowrap"}}>Wk</td>
+                                      <td style={{paddingBottom:8,paddingRight:12,textAlign:"right",whiteSpace:"nowrap",color:posColor}}>Pts</td>
+                                      {gameCols.map(c => (
+                                        <td key={c.key} style={{paddingBottom:8,paddingRight:12,textAlign:"right",whiteSpace:"nowrap"}}>{c.label}</td>
+                                      ))}
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {weeks.map(({week, stats}) => {
+                                      const wpts = getDisplayPts(stats, historyScoring);
+                                      return (
+                                        <tr key={week} style={{borderTop:"1px solid "+C.border}}>
+                                          <td style={{padding:"7px 12px 7px 0",fontWeight:700,color:C.textSec,fontFamily:"monospace"}}>{week}</td>
+                                          <td style={{padding:"7px 12px 7px 0",textAlign:"right",fontWeight:900,color:posColor}}>{wpts > 0 ? wpts : "—"}</td>
+                                          {gameCols.map(c => {
+                                            const val = stats[c.key];
+                                            return (
+                                              <td key={c.key} style={{padding:"7px 12px 7px 0",textAlign:"right",color:val>0?C.textPri:C.textSec}}>
+                                                {val != null && val > 0 ? (Number.isInteger(val) ? val : val.toFixed(1)) : "—"}
+                                              </td>
+                                            );
+                                          })}
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
