@@ -37,6 +37,6 @@ export async function GET(request) {
     );
   } catch (err) {
     console.error(`[/api/tank01] error [type=${type}]:`, err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: "Failed to fetch data. Please try again." }, { status: 500 });
   }
 }

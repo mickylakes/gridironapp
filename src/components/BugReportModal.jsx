@@ -79,8 +79,17 @@ export default function BugReportModal({ C, user, onClose }) {
 
   // ── Submit ─────────────────────────────────────────────────────────────────
   const handleSubmit = useCallback(async () => {
+    if (status === "submitting") return;
     if (!category || !description.trim()) {
       setErrorMsg("Please select a category and describe the issue.");
+      return;
+    }
+    if (description.trim().length < 10) {
+      setErrorMsg("Please describe the issue in at least 10 characters.");
+      return;
+    }
+    if (description.length > 2000) {
+      setErrorMsg("Description cannot exceed 2000 characters.");
       return;
     }
     setErrorMsg("");
@@ -285,6 +294,7 @@ export default function BugReportModal({ C, user, onClose }) {
             onChange={e => setDescription(e.target.value)}
             placeholder="What happened? What were you trying to do? What did you expect?"
             rows={4}
+            maxLength={2000}
             style={{
               width: "100%", padding: "10px 14px", resize: "vertical",
               background: C.inputBg, border: "1px solid " + C.border,
