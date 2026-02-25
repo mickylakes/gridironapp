@@ -19,6 +19,27 @@ export const DARK = {
   trackBg: "#1e293b",
 };
 
+export const AMOLED = {
+  pageBg: "#000000",
+  loadBg: "#000000",
+  textPri: "#ffffff", textSec: "#94a3b8",
+  border: "#1a1a1a", cardBg: "rgba(10,10,10,0.9)",
+  inputBg: "#0d0d0d", rowHover: "rgba(255,255,255,0.04)",
+  headerBg: "rgba(0,0,0,0.95)", subBg: "rgba(0,0,0,0.85)",
+  stickyBg: "#000000", rowBg: "rgba(10,10,10,0.9)",
+  btnBg: "#0d0d0d", btnBgAlt: "#0d0d0d",
+  themeBtnBg: "#0d0d0d", themeBtnCol: "#a78bfa", settBtnCol: "#818cf8",
+  tabDraftBg: "rgba(99,102,241,0.08)",
+  auctionHintBg: "rgba(245,158,11,0.08)", idpHintBg: "rgba(6,182,212,0.08)",
+  modalBg: "#000000", statBg: "rgba(10,10,10,0.95)",
+  curPickBg: "rgba(16,185,129,0.12)", yourColBg: "rgba(99,102,241,0.04)",
+  yourCellBg: "rgba(99,102,241,0.15)", otherCellBg: "rgba(10,10,10,0.95)",
+  dashCol: "#1a1a1a", dotCol: "#0d0d0d",
+  yourInputBg: "rgba(99,102,241,0.08)", budgetCardBg: "rgba(99,102,241,0.08)",
+  nomBg: "rgba(245,158,11,0.08)", clkBg: "#0d0d0d",
+  trackBg: "#0d0d0d",
+};
+
 export const LIGHT = {
   pageBg: "linear-gradient(135deg,#f8fafc,#eef2ff)",
   loadBg: "#f8fafc",

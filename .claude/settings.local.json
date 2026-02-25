@@ -4,7 +4,15 @@
       "Bash(npm run build:*)",
       "WebFetch(domain:rapidapi.com)",
       "WebFetch(domain:www.tank01.com)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "WebFetch(domain:docs.sleeper.com)",
+      "WebFetch(domain:api.sleeper.app)",
+      "Bash(node scripts/fetchWeeklyStats.js:*)",
+      "WebFetch(domain:site.api.espn.com)",
+      "WebFetch(domain:sports.core.api.espn.com)"
     ]
   }
 }

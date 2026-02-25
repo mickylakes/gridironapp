@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { TrendingUp, Users, Star, Sun, Moon, Settings, ClipboardList, Database, DollarSign, Bug } from "lucide-react";
-import { DARK, LIGHT } from "@/constants/theme";
+import { TrendingUp, Users, Star, Sun, Moon, Zap, Settings, ClipboardList, Database, DollarSign, Bug } from "lucide-react";
+import { DARK, LIGHT, AMOLED } from "@/constants/theme";
 import { buildPlayers, SAMPLES } from "@/utils/players";
 import { tabBtn } from "@/utils/styleHelpers";
 import RankingsTab from "@/components/RankingsTab";
@@ -62,8 +62,7 @@ export default function Home() {
   const [bidTeam, setBidTeam]       = useState(1);
 
   const { isMobile } = useWindowSize();
-  const C = theme === "dark" ? DARK : LIGHT;
-  const dk = theme === "dark";
+  const C = theme === "dark" ? DARK : theme === "amoled" ? AMOLED : LIGHT;
   const totalPicks = draftTeams * draftRounds;
 
   // Salary cap state
@@ -394,12 +393,12 @@ export default function Home() {
 
       {/* Fixed buttons */}
       <button onClick={() => {
-        const newTheme = dk ? "light" : "dark";
+        const newTheme = theme === "dark" ? "amoled" : theme === "amoled" ? "light" : "dark";
         setTheme(newTheme);
         saveSettings({ theme: newTheme, scoring, budget, num_teams: numTeams });
       }}
         style={{position:"fixed",top:12,right:12,zIndex:50,padding:isMobile?"8px":"10px",borderRadius:12,border:"none",cursor:"pointer",background:C.themeBtnBg,color:C.themeBtnCol,boxShadow:"0 2px 8px rgba(0,0,0,0.2)"}}>
-        {dk ? <Sun size={18}/> : <Moon size={18}/>}
+        {theme === "light" ? <Moon size={18}/> : theme === "dark" ? <Zap size={18}/> : <Sun size={18}/>}
       </button>
 
       <button onClick={() => setShowSettings(true)}
