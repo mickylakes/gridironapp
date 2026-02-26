@@ -12,6 +12,7 @@ import SettingsModal from "@/components/SettingsModal";
 import useWindowSize from "@/hooks/useWindowSize";
 import useSupabaseUser from "@/hooks/useSupabaseUser";
 import useUserSettings from "@/hooks/useUserSettings";
+import useDraftPersistence from "@/hooks/useDraftPersistence";
 import { createClient } from "@/lib/supabase";
 import AuthModal from "@/components/AuthModal";
 import { LogIn, LogOut } from "lucide-react";
@@ -65,6 +66,7 @@ export default function Home() {
   const { isMobile } = useWindowSize();
   const { user } = useSupabaseUser();
   const { settings, save: saveSettings } = useUserSettings(user);
+  const { loadDraft: _loadDraft, saveDraft: _saveDraft } = useDraftPersistence(user);
   const C = theme === "dark" ? DARK : theme === "amoled" ? AMOLED : LIGHT;
   const totalPicks = draftTeams * draftRounds;
 
@@ -156,58 +158,33 @@ export default function Home() {
     }
   }
 
-  // FIX 2: saveDraft now uses user_id as the upsert conflict target.
-  // Requires: ALTER TABLE drafts ADD CONSTRAINT drafts_user_id_key UNIQUE (user_id);
-  async function saveDraft(currentPicks, currentBids) {
-    if (!user) return;
-    const supabase = createClient();
-    try {
-      const { error } = await supabase.from("drafts").upsert({
-        user_id: user.id,
-        name: `Draft ${new Date().toLocaleDateString()}`,
-        draft_type: draftType,
-        teams: draftTeams,
-        rounds: draftRounds,
-        your_slot: yourSlot,
-        picks: currentPicks || {},
-        auction_bids: currentBids || {},
-        settings: { teamNames, idpOn, auctBudget },
-        updated_at: new Date().toISOString(),
-      }, { onConflict: "user_id" });
-      if (error) console.error("saveDraft error:", error);
-    } catch (err) {
-      console.error("saveDraft exception:", err);
-    }
+  function saveDraft(currentPicks, currentBids) {
+    return _saveDraft(currentPicks, currentBids, {
+      draftType, draftTeams, draftRounds, yourSlot, teamNames, idpOn, auctBudget,
+    });
   }
 
   async function loadDraft() {
-    if (!user) return;
-    const supabase = createClient();
-    try {
-      const { data, error } = await supabase.from("drafts").select("*").eq("user_id", user.id).single();
-      if (error && error.code !== "PGRST116") console.error("loadDraft error:", error);
-      if (!data) return;
+    const data = await _loadDraft();
+    if (!data) return;
 
-      const hasPicks = data.picks && Object.keys(data.picks).length > 0;
-      const hasAuctBids = data.auction_bids && Object.keys(data.auction_bids).length > 0;
+    const hasPicks = data.picks && Object.keys(data.picks).length > 0;
+    const hasAuctBids = data.auction_bids && Object.keys(data.auction_bids).length > 0;
 
-      if (hasPicks || hasAuctBids) {
-        setDraftType(data.draft_type);
-        setDraftTeams(data.teams);
-        setDraftRounds(data.rounds);
-        setYourSlot(data.your_slot);
-        setPicks(data.picks || {});
-        setPickIndex(Object.keys(data.picks || {}).length);
-        setAuctBids(data.auction_bids || {});
-        if (data.settings) {
-          setTeamNames(data.settings.teamNames || teamNames);
-          setIdpOn(data.settings.idpOn || false);
-          setAuctBudget(data.settings.auctBudget || 200);
-        }
-        setDraftStarted(true);
+    if (hasPicks || hasAuctBids) {
+      setDraftType(data.draft_type);
+      setDraftTeams(data.teams);
+      setDraftRounds(data.rounds);
+      setYourSlot(data.your_slot);
+      setPicks(data.picks || {});
+      setPickIndex(Object.keys(data.picks || {}).length);
+      setAuctBids(data.auction_bids || {});
+      if (data.settings) {
+        setTeamNames(data.settings.teamNames || teamNames);
+        setIdpOn(data.settings.idpOn || false);
+        setAuctBudget(data.settings.auctBudget || 200);
       }
-    } catch (err) {
-      console.error("loadDraft exception:", err);
+      setDraftStarted(true);
     }
   }
 
