@@ -374,12 +374,12 @@ export default function Home() {
         <div style={{textAlign:"center",marginBottom:12}}>
           <div style={{display:"inline-flex",alignItems:"center",gap:12,marginBottom:8}}>
             <TrendingUp size={isMobile?24:40} color="#10b981"/>
-            <h1 style={{fontSize:isMobile?32:52,fontWeight:900,margin:0,background:"linear-gradient(90deg,#10b981,#34d399,#10b981)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",letterSpacing:"-0.05em",textShadow:"0 0 18px rgba(16,185,129,0.20)"}}>GRID IRON</h1>
+            <h1 className="gi-title">GRID IRON</h1>
           </div>
-          <p style={{color:C.textSec,fontFamily:"monospace",fontSize:isMobile?11:14,letterSpacing:"0.05em"}}>{new Date().getFullYear()} Fantasy Football Rankings</p>
-          <div style={{display:"flex",justifyContent:"center",gap:8,marginTop:8,flexWrap:"wrap"}}>
-            <span style={{display:"flex",alignItems:"center",gap:4,color:C.textSec,fontSize:13}}><Users size={14}/> {players.length} Players</span>
-            {favorites.size > 0 && <span style={{display:"flex",alignItems:"center",gap:4,color:"#fbbf24",fontSize:13}}><Star size={14} fill="#fbbf24"/> {favorites.size} Favorites</span>}
+          <p className="gi-subtitle">{new Date().getFullYear()} Fantasy Football Rankings</p>
+          <div style={{display:"flex",justifyContent:"center",gap:8,marginTop:6,flexWrap:"wrap"}}>
+            <span style={{display:"flex",alignItems:"center",gap:4,color:"var(--gi-dim)",fontSize:"var(--gi-meta-size)"}}><Users size={12}/> {players.length} Players</span>
+            {favorites.size > 0 && <span style={{display:"flex",alignItems:"center",gap:4,color:"var(--gi-accent-bright)",fontSize:"var(--gi-meta-size)"}}><Star size={12} fill="var(--gi-accent-bright)"/> {favorites.size} Favorites</span>}
           </div>
           <div style={{display:"flex",justifyContent:"center",gap:8,marginTop:8,flexWrap:"wrap"}}>
             {Object.entries(apiStatus).map(([src,st]) => (

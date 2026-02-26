@@ -44,6 +44,18 @@
   --gi-font: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
     Helvetica, Arial, sans-serif;
 
+  /* Typography scale */
+  --gi-title-size:    clamp(2rem, 7vw, 3.25rem);     /* 32px → 52px fluid */
+  --gi-subtitle-size: clamp(0.6875rem, 2vw, 0.875rem); /* 11px → 14px fluid */
+  --gi-meta-size:     0.75rem;                          /* 12px — meta/stats */
+
+  /* Muted text levels (dark-mode anchored; C prop overrides on light) */
+  --gi-muted: #94a3b8;                    /* same as DARK/AMOLED textSec */
+  --gi-dim:   rgba(148, 163, 184, 0.55); /* dimmer — secondary meta */
+
+  /* Title gradient */
+  --gi-title-grad: linear-gradient(90deg, #10b981, #34d399, #10b981);
+
   /* Lock native controls (scrollbars, inputs) to dark mode */
   color-scheme: dark;
 }
@@ -77,4 +89,38 @@ a {
 .gi-pill {
   letter-spacing: 0.05em;
   text-transform: uppercase;
+}
+
+/* ── Typography utilities ── */
+
+/* App title — green gradient, fluid size */
+.gi-title {
+  font-size: var(--gi-title-size);
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  background: var(--gi-title-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  /* drop-shadow works with transparent fill; text-shadow does not */
+  filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.15));
+  margin: 0;
+}
+
+/* Page subtitle — monospace label style */
+.gi-subtitle {
+  font-size: var(--gi-subtitle-size);
+  font-family: monospace;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--gi-muted);
+}
+
+/* Table header cells */
+.gi-th {
+  font-size: 11px;
+  font-family: monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gi-muted);
 }
