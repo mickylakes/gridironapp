@@ -1,13 +1,51 @@
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  /* Next.js default tokens — kept for any legacy references */
+  --background: #0b0e14;
+  --foreground: #f1f5f9;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* ─── Grid Iron design tokens ─────────────────────────────────── */
+
+  /* Base background */
+  --gi-bg: #0b0e14;
+  --gi-bg-gradient: linear-gradient(160deg, #0b0e14 0%, #0d1117 60%, #0b0e14 100%);
+  --gi-text-pri: #f1f5f9;
+
+  /* Accent — green only */
+  --gi-accent:        #10b981;
+  --gi-accent-bright: #34d399;
+  --gi-accent-dim:    rgba(16, 185, 129, 0.15);
+
+  /* Glow intensities */
+  --gi-glow:        rgba(16, 185, 129, 0.25);
+  --gi-glow-strong: rgba(16, 185, 129, 0.50);
+
+  /* Border radii */
+  --gi-radius-sm: 6px;
+  --gi-radius-md: 10px;
+  --gi-radius-lg: 16px;
+
+  /*
+   * Inset glow shadows.
+   * Inset box-shadows paint inside the element boundary, so they are
+   * never clipped by a parent's overflow:hidden — safe for table rows.
+   */
+  --gi-inset-hover:
+    inset 0 0 0 1px rgba(16, 185, 129, 0.22),
+    inset 0 0 18px rgba(16, 185, 129, 0.05);
+  --gi-inset-selected:
+    inset 0 0 0 1px rgba(16, 185, 129, 0.50),
+    inset 0 0 28px rgba(16, 185, 129, 0.12);
+
+  /* Focus ring */
+  --gi-ring-color: rgba(16, 185, 129, 0.70);
+  --gi-ring-width: 2px;
+
+  /* Typography */
+  --gi-font: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Helvetica, Arial, sans-serif;
+
+  /* Lock native controls (scrollbars, inputs) to dark mode */
+  color-scheme: dark;
 }
 
 html,
@@ -17,9 +55,9 @@ body {
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--gi-text-pri);
+  background: var(--gi-bg-gradient);
+  font-family: var(--gi-font);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -35,8 +73,8 @@ a {
   text-decoration: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
+/* Pill / badge utility — position tags, tier labels */
+.gi-pill {
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }

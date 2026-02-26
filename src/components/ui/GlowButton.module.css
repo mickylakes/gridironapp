@@ -1,0 +1,56 @@
+/*
+ * GlowButton — primary (green gradient + glow) and secondary (ghost) variants.
+ * Primary uses green tones only, no blue or purple.
+ */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  cursor: pointer;
+  font-weight: 700;
+  font-family: var(--gi-font);
+  border-radius: var(--gi-radius-md);
+  transition: box-shadow 200ms ease, transform 100ms ease;
+}
+
+/* ── Primary ── */
+.primary {
+  background: linear-gradient(135deg, var(--gi-accent) 0%, var(--gi-accent-bright) 100%);
+  color: #000;
+}
+
+.primary:hover {
+  box-shadow: 0 0 18px var(--gi-glow), 0 4px 14px rgba(16, 185, 129, 0.3);
+  transform: translateY(-1px);
+}
+
+/* ── Secondary / ghost ── */
+.secondary {
+  background: transparent;
+  color: var(--gi-accent);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.secondary:hover {
+  box-shadow: 0 0 12px var(--gi-glow);
+  border-color: var(--gi-accent);
+}
+
+/* ── Focus ring ── */
+.btn:focus-visible {
+  outline: var(--gi-ring-width) solid var(--gi-ring-color);
+  outline-offset: 2px;
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  .btn {
+    transition: none;
+  }
+
+  .primary:hover {
+    transform: none;
+  }
+}

@@ -1,0 +1,43 @@
+/*
+ * GlowCard — inset glow on hover/selected/active, accessible focus ring.
+ *
+ * Uses inset box-shadow exclusively so glows are never clipped by a
+ * parent container's overflow:hidden (table rows, card wrappers, etc.).
+ * outline-offset: -2px keeps the focus ring inside element bounds for
+ * the same reason.
+ *
+ * :active scale gives mobile tap feedback without requiring hover events.
+ */
+
+.card {
+  transition: box-shadow 200ms ease, transform 100ms ease;
+}
+
+.card:hover {
+  box-shadow: var(--gi-inset-hover);
+  background: rgba(16, 185, 129, 0.04);
+}
+
+.card:active {
+  transform: scale(0.995);
+  box-shadow: var(--gi-inset-selected);
+}
+
+.selected {
+  box-shadow: var(--gi-inset-selected);
+}
+
+.card:focus-visible {
+  outline: var(--gi-ring-width) solid var(--gi-ring-color);
+  outline-offset: -2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transition: none;
+  }
+
+  .card:active {
+    transform: none;
+  }
+}

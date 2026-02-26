@@ -5,6 +5,7 @@ import { pc, ti } from "@/constants/theme";
 import { tabBtn, posBtn } from "@/utils/styleHelpers";
 import useWindowSize from "@/hooks/useWindowSize";
 import { capSalaryValue, capSalaryValueDynasty } from "@/utils/players";
+import GlowCard from "@/components/ui/GlowCard";
 
 function timeAgo(dateStr) {
   if (!dateStr) return "";
@@ -69,10 +70,10 @@ export default function RankingsTab({
       {/* Redraft / Dynasty toggle */}
       <div style={{display:"flex",justifyContent:"center",marginBottom:16}}>
         <div style={{display:"inline-flex",background:C.cardBg,border:"1px solid "+C.border,borderRadius:14,padding:4}}>
-          <button onClick={() => setRankType("redraft")} style={tabBtn(rankType==="redraft","linear-gradient(135deg,#6366f1,#8b5cf6)",C)}>
+          <button onClick={() => setRankType("redraft")} style={{...tabBtn(rankType==="redraft","linear-gradient(135deg,#10b981,#0d9488)",C),boxShadow:rankType==="redraft"?"0 4px 12px rgba(16,185,129,0.35)":undefined}}>
             <Zap size={14}/> REDRAFT
           </button>
-          <button onClick={() => setRankType("dynasty")} style={tabBtn(rankType==="dynasty","linear-gradient(135deg,#6366f1,#8b5cf6)",C)}>
+          <button onClick={() => setRankType("dynasty")} style={{...tabBtn(rankType==="dynasty","linear-gradient(135deg,#10b981,#0d9488)",C),boxShadow:rankType==="dynasty"?"0 4px 12px rgba(16,185,129,0.35)":undefined}}>
             <Clock size={14}/> DYNASTY
           </button>
         </div>
@@ -106,8 +107,8 @@ export default function RankingsTab({
 
       {/* Cap ceiling context hint — desktop only */}
       {!isMobile && (
-        <div style={{maxWidth:"100%",margin:"0 0 12px",padding:"8px 16px",borderRadius:10,background:C.auctionHintBg,border:"1px solid rgba(245,158,11,0.2)",fontSize:12,color:C.textSec,display:"flex",alignItems:"center",gap:6}}>
-          💰 Cap salary recommendations based on your <strong style={{color:"#fbbf24"}}>{fmtCap(capCeiling)}</strong> cap ceiling.
+        <div style={{maxWidth:"100%",margin:"0 0 12px",padding:"8px 16px",borderRadius:10,background:C.auctionHintBg,border:"1px solid rgba(16,185,129,0.2)",fontSize:12,color:C.textSec,display:"flex",alignItems:"center",gap:6}}>
+          💰 Cap salary recommendations based on your <strong style={{color:"#34d399"}}>{fmtCap(capCeiling)}</strong> cap ceiling.
           <span style={{marginLeft:4,opacity:0.7}}>Adjust in League Settings on the Cap Sheet tab.</span>
         </div>
       )}
@@ -121,8 +122,8 @@ export default function RankingsTab({
             style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 16px",background:C.headerBg,border:"none",cursor:"pointer",color:C.textSec}}
           >
             <span style={{display:"flex",alignItems:"center",gap:8,fontWeight:700,fontSize:12,fontFamily:"monospace",letterSpacing:"0.05em",textTransform:"uppercase"}}>
-              <Newspaper size={14} color="#818cf8"/> NFL News &amp; Transactions
-              <span style={{padding:"1px 8px",borderRadius:20,background:"rgba(99,102,241,0.15)",border:"1px solid rgba(99,102,241,0.3)",color:"#818cf8",fontSize:11}}>{newsItems.length}</span>
+              <Newspaper size={14} color="#34d399"/> NFL News &amp; Transactions
+              <span style={{padding:"1px 8px",borderRadius:20,background:"rgba(16,185,129,0.12)",border:"1px solid rgba(16,185,129,0.3)",color:"#34d399",fontSize:11}}>{newsItems.length}</span>
             </span>
             <ChevronDown size={15} style={{transition:"transform 0.2s",transform:newsOpen?"rotate(180deg)":"none"}}/>
           </button>
@@ -144,7 +145,7 @@ export default function RankingsTab({
                   }}
                 >
                   {item.playerName && (
-                    <span style={{display:"inline-flex",alignItems:"center",alignSelf:"flex-start",padding:"1px 8px",borderRadius:20,background:"rgba(99,102,241,0.15)",border:"1px solid rgba(99,102,241,0.25)",fontSize:10,fontWeight:700,color:"#818cf8",fontFamily:"monospace"}}>
+                    <span style={{display:"inline-flex",alignItems:"center",alignSelf:"flex-start",padding:"1px 8px",borderRadius:20,background:"rgba(16,185,129,0.12)",border:"1px solid rgba(16,185,129,0.25)",fontSize:10,fontWeight:700,color:"#34d399",fontFamily:"monospace"}}>
                       {item.playerName}
                     </span>
                   )}
@@ -166,7 +167,7 @@ export default function RankingsTab({
       <div style={{background:C.cardBg,border:"1px solid "+C.border,borderRadius:16,overflow:"hidden",boxShadow:"0 8px 32px rgba(0,0,0,0.2)"}}>
 
         {/* Header */}
-        <div style={{display:"grid",gridTemplateColumns:cols,gap:8,padding:isMobile?"10px 12px":"12px 20px",background:C.headerBg,borderBottom:"1px solid "+C.border,fontSize:11,fontFamily:"monospace",letterSpacing:"0.08em",color:C.textSec,textTransform:"uppercase"}}>
+        <div style={{display:"grid",gridTemplateColumns:cols,gap:8,padding:isMobile?"8px 12px":"9px 20px",background:C.headerBg,borderBottom:"1px solid "+C.border,fontSize:11,fontFamily:"monospace",letterSpacing:"0.08em",color:C.textSec,textTransform:"uppercase"}}>
           <div>★</div>
           <div>Player</div>
           <div style={{textAlign:"center"}}>Pos</div>
@@ -193,12 +194,10 @@ export default function RankingsTab({
           const capPct = Math.min(100, (capVal / capCeiling) * 100);
 
           return (
-            <div
+            <GlowCard
               key={player.id}
               onClick={() => setSelPlayer(player)}
-              style={{display:"grid",gridTemplateColumns:cols,gap:8,padding:isMobile?"10px 12px":"14px 20px",borderBottom:"1px solid "+C.border,cursor:"pointer"}}
-              onMouseEnter={e => e.currentTarget.style.background=C.rowHover}
-              onMouseLeave={e => e.currentTarget.style.background="transparent"}
+              style={{display:"grid",gridTemplateColumns:cols,gap:8,padding:isMobile?"8px 12px":"11px 20px",borderBottom:"1px solid "+C.border,cursor:"pointer"}}
             >
               <div style={{display:"flex",alignItems:"center"}}>
                 <button onClick={e => { e.stopPropagation(); toggleFav(player.id); }} style={{background:"none",border:"none",cursor:"pointer",padding:0}}>
@@ -225,7 +224,7 @@ export default function RankingsTab({
               </div>
 
               <div style={{display:"flex",alignItems:"center",justifyContent:"center"}}>
-                <span style={{padding:"3px 8px",borderRadius:6,background:pc(player.position),color:"#fff",fontWeight:800,fontSize:11}}>{player.position}</span>
+                <span className="gi-pill" style={{padding:"3px 8px",borderRadius:6,background:pc(player.position),color:"#fff",fontWeight:800,fontSize:11}}>{player.position}</span>
               </div>
 
               {!isMobile && <div style={{display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"monospace",fontSize:13,color:C.textSec}}>{player.team}</div>}
@@ -277,14 +276,14 @@ export default function RankingsTab({
               )}
 
               <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
-                <span style={{fontWeight:900,fontSize:isMobile?16:22,background:"linear-gradient(90deg,#34d399,#2dd4bf)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>{pts.toFixed(0)}</span>
+                <span style={{fontWeight:900,fontSize:isMobile?16:22,background:"linear-gradient(90deg,#10b981,#34d399)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>{pts.toFixed(0)}</span>
                 <span style={{fontSize:10,fontFamily:"monospace",color:C.textSec}}>{rankType==="dynasty"?"DYN":"PPR"}</span>
               </div>
 
               {/* Cap Value column — desktop only */}
               {!isMobile && (
                 <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4}}>
-                  <span style={{fontWeight:900,fontSize:16,background:"linear-gradient(90deg,#f59e0b,#fbbf24)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>
+                  <span style={{fontWeight:900,fontSize:16,background:"linear-gradient(90deg,#10b981,#34d399)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>
                     {fmtCap(capVal)}
                   </span>
                   <div style={{width:64,height:4,borderRadius:2,background:C.trackBg,overflow:"hidden"}}>
@@ -292,7 +291,7 @@ export default function RankingsTab({
                       height:"100%",
                       width: capPct + "%",
                       borderRadius:2,
-                      background: capPct > 25 ? "#ef4444" : capPct > 15 ? "#f59e0b" : "#10b981"
+                      background: capPct > 25 ? "rgba(16,185,129,0.4)" : capPct > 15 ? "rgba(16,185,129,0.65)" : "#10b981"
                     }}/>
                   </div>
                   <span style={{fontSize:10,fontFamily:"monospace",color:C.textSec}}>{capPct.toFixed(1)}% of cap</span>
@@ -301,10 +300,10 @@ export default function RankingsTab({
 
               {!isMobile && (
                 <div style={{display:"flex",alignItems:"center",justifyContent:"center"}}>
-                  <span style={{padding:"3px 10px",borderRadius:20,background:tier.bg,color:tier.col,fontWeight:700,fontSize:11}}>{tier.label}</span>
+                  <span className="gi-pill" style={{padding:"3px 10px",borderRadius:20,background:tier.bg,color:tier.col,fontWeight:700,fontSize:11}}>{tier.label}</span>
                 </div>
               )}
-            </div>
+            </GlowCard>
           );
         })}
       </div>
