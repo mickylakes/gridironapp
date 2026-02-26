@@ -12,7 +12,11 @@
       "WebFetch(domain:api.sleeper.app)",
       "Bash(node scripts/fetchWeeklyStats.js:*)",
       "WebFetch(domain:site.api.espn.com)",
-      "WebFetch(domain:sports.core.api.espn.com)"
+      "WebFetch(domain:sports.core.api.espn.com)",
+      "Bash(npm run lint:*)",
+      "Bash(npx next lint:*)",
+      "Bash(node_modules/.bin/next lint)",
+      "Bash(npm install)"
     ]
   }
 }

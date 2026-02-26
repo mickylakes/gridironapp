@@ -14,7 +14,7 @@ Fantasy draft application featuring real-time Sleeper API integration and Supaba
 
 ## Code Style & Architecture
 - **Components:** Functional components with Hooks. Use `'use client'` strictly when needed.
-- **Styling:** Tailwind CSS + `src/constants/theme.js` (DARK/LIGHT). Never hardcode hex values — always reference theme constants.
+- **Styling:** Tailwind CSS + `src/constants/theme.js` (DARK/LIGHT/AMOLED). Never hardcode hex values — always reference theme constants.
 - **Icons:** Lucide-React.
 - **Responsiveness:** Use `src/hooks/useWindowSize.js` for mobile-specific logic. All UI must be mobile-first.
 - **Data Fetching:** Sleeper API for player stats; Supabase for user data (profiles, favorites, drafts, contracts, bug_reports).
@@ -31,11 +31,13 @@ Fantasy draft application featuring real-time Sleeper API integration and Supaba
     src/components/AuthModal.jsx — email + Google OAuth
     src/components/CapSheetTab.jsx — NFL-style salary cap sheet with contracts
     src/components/BugReportModal.jsx — bug reporting modal with screenshot capture
-    src/constants/theme.js — DARK, LIGHT, PC (position colors), TIERS
+    src/constants/theme.js — DARK, LIGHT, AMOLED, PC (position colors), TIERS
     src/utils/players.js — buildPlayers, blendStats, calcIdpPoints, capSalaryValue, capSalaryValueDynasty
     src/utils/tank01.js — Tank01 NFL API helpers: getAdp, getNews, getByeWeeks, getPlayerInfo, getProjections (server-only, cached in api_cache)
     src/utils/styleHelpers.js — style functions
     src/hooks/useWindowSize.js — mobile detection
+    src/hooks/useSupabaseUser.js — getSession + onAuthStateChange subscription; returns { user, session, loading, error }
+    src/hooks/useUserSettings.js — user_settings load + upsert; returns { settings, setSettings, loading, saving, error, reload, save }
     src/lib/supabase.js — Supabase client
     src/app/api/tank01/route.js — API route proxying Tank01 calls: GET ?type=adp|news|bye|playerinfo|projections
     scripts/fetchWeeklyStats.js — one-time script to pre-fetch historical weekly stats + ESPN schedule → public/data/
@@ -78,8 +80,8 @@ Fantasy draft application featuring real-time Sleeper API integration and Supaba
 - **State:** Sync draft progress to Supabase `drafts` table after every pick, undo, and reset.
 - **Cap Salaries:** Use capSalaryValue(pts, pos, capCeiling) for redraft and capSalaryValueDynasty() for dynasty. Floor $750K, ceiling 35% of cap.
 - **IDP Scoring:** calcIdpPoints() manually scores defensive players since Sleeper returns pts_ppr=0 for DEF/DL/LB/DB.
-- **Settings upsert:** user_settings uses onConflict: "user_id". Always pass full settings object to avoid partial overwrites.
-- **Auth:** Single onAuthStateChange subscription in page.js. Never add a second one.
+- **Settings upsert:** Managed by `useUserSettings` hook — upsert uses onConflict: "user_id". Call `save(patch)` with a partial object; hook adds user_id + updated_at automatically. DEFAULTS: `{ theme:"dark", scoring:"ppr", budget:200, num_teams:12, cap_ceiling:50_000_000 }`. Hook does NOT reset settings when user signs out.
+- **Auth:** Managed by `useSupabaseUser` hook — single onAuthStateChange subscription. Never add a second one anywhere.
 - **Tank01 data:** `buildPlayers()` accepts adpData, byeData, playerInfoData, tank01Proj as optional args. Tank01 injury/bye overrides Sleeper when available. All Tank01 data is empty in offseason — expected, no fix needed.
 - **Tank01 injury field:** `p.injury` from Tank01 is an OBJECT `{designation, description, injDate, injReturnDate}`, not a string. Always use `typeof p.injury === "object" ? p.injury?.designation : p.injury` for injuryStatus.
 - **Tank01 cache TTLs:** ADP 24h, News 2h, Bye 24h, PlayerInfo 6h, Projections 24h. Bust via Supabase SQL: `DELETE FROM api_cache WHERE key = '<key>';`
@@ -90,7 +92,7 @@ Fantasy draft application featuring real-time Sleeper API integration and Supaba
 - Auth (email + Google OAuth)
 - Favorites sync to Supabase
 - Draft persistence + restore on login
-- Dark / light theme (persisted)
+- Dark / AMOLED / light theme (3-way cycle: Dark→AMOLED→Light, icons Moon/Zap/Sun, persisted to Supabase)
 - PPR / Half-PPR / Standard scoring (persisted)
 - Mobile responsive layout (tab bar, rankings sub-line stats, header overlap fixes)
 - Player modal: Overview (stats + sparkline), History (bar chart + week-by-week game log with opponent logo, position-specific stat columns, PPR/STD toggle), Status (injury, depth, bio, bye week)
