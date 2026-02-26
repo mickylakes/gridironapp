@@ -38,6 +38,8 @@ Fantasy draft application featuring real-time Sleeper API integration and Supaba
     src/hooks/useWindowSize.js — mobile detection
     src/hooks/useSupabaseUser.js — getSession + onAuthStateChange subscription; returns { user, session, loading, error }
     src/hooks/useUserSettings.js — user_settings load + upsert; returns { settings, setSettings, loading, saving, error, reload, save }
+    src/hooks/useDraftPersistence.js — drafts table load + upsert; returns { loadDraft, saveDraft, loading, saving, error }
+    src/hooks/useFavorites.js — favorites table load + toggle; returns { favorites, setFavorites, loadFavorites, toggleFavorite, loading, saving, error }
     src/lib/supabase.js — Supabase client
     src/app/api/tank01/route.js — API route proxying Tank01 calls: GET ?type=adp|news|bye|playerinfo|projections
     scripts/fetchWeeklyStats.js — one-time script to pre-fetch historical weekly stats + ESPN schedule → public/data/
@@ -82,6 +84,8 @@ Fantasy draft application featuring real-time Sleeper API integration and Supaba
 - **IDP Scoring:** calcIdpPoints() manually scores defensive players since Sleeper returns pts_ppr=0 for DEF/DL/LB/DB.
 - **Settings upsert:** Managed by `useUserSettings` hook — upsert uses onConflict: "user_id". Call `save(patch)` with a partial object; hook adds user_id + updated_at automatically. DEFAULTS: `{ theme:"dark", scoring:"ppr", budget:200, num_teams:12, cap_ceiling:50_000_000 }`. Hook does NOT reset settings when user signs out.
 - **Auth:** Managed by `useSupabaseUser` hook — single onAuthStateChange subscription. Never add a second one anywhere.
+- **Draft persistence:** Managed by `useDraftPersistence` hook — `loadDraft()` returns raw DB row or null (caller applies state); `saveDraft(picks, bids, snapshot)` upserts. Neither function auto-runs — both called explicitly from `draft/page.js`'s `useEffect([user])` / action handlers. snapshot = `{ draftType, draftTeams, draftRounds, yourSlot, teamNames, idpOn, auctBudget }`.
+- **Favorites:** Managed by `useFavorites` hook — state is `Set<string>` of player IDs. `toggleFavorite(id)` does optimistic update first, then guards `!user?.id` before DB write (UI toggles even when logged out). `loadFavorites()` called explicitly from `draft/page.js`. Passed as `favorites` + `toggleFav` props to `RankingsTab` and `PlayerModal`.
 - **Tank01 data:** `buildPlayers()` accepts adpData, byeData, playerInfoData, tank01Proj as optional args. Tank01 injury/bye overrides Sleeper when available. All Tank01 data is empty in offseason — expected, no fix needed.
 - **Tank01 injury field:** `p.injury` from Tank01 is an OBJECT `{designation, description, injDate, injReturnDate}`, not a string. Always use `typeof p.injury === "object" ? p.injury?.designation : p.injury` for injuryStatus.
 - **Tank01 cache TTLs:** ADP 24h, News 2h, Bye 24h, PlayerInfo 6h, Projections 24h. Bust via Supabase SQL: `DELETE FROM api_cache WHERE key = '<key>';`
