@@ -4,7 +4,7 @@ Fantasy draft application featuring real-time Sleeper API integration and Supaba
 ## Project Overview
 - **Live URL:** https://gridironapp.vercel.app
 - **GitHub:** github.com/mickylakes/gridironapp
-- **Stack:** Next.js 16 (App Router), Supabase, Vercel, Tailwind CSS, Sentry.
+- **Stack:** Next.js 16 (App Router), Supabase, Vercel, plain CSS (globals.css + CSS Modules), Sentry.
 
 ## Development Commands
 - `npm run dev` - Start local development server
@@ -14,7 +14,7 @@ Fantasy draft application featuring real-time Sleeper API integration and Supaba
 
 ## Code Style & Architecture
 - **Components:** Functional components with Hooks. Use `'use client'` strictly when needed.
-- **Styling:** Tailwind CSS + `src/constants/theme.js` (DARK/LIGHT/AMOLED). Never hardcode hex values — always reference theme constants.
+- **Styling:** Two-layer system. (1) **CSS tokens** — `src/app/globals.css` defines `--gi-*` custom properties (accent, glows, radii, font); use `var(--gi-*)` in CSS modules and `.gi-*` global utilities. (2) **JS theme** — `src/constants/theme.js` (DARK/LIGHT/AMOLED) passed as `C` prop to components; use `C.*` for theme-dependent runtime colors. Never hardcode hex values in component code — reference `C.*` or `var(--gi-*)` as appropriate. Accent is green-only (`#10b981` / `#34d399`); no purple/indigo/amber accents.
 - **Icons:** Lucide-React.
 - **Responsiveness:** Use `src/hooks/useWindowSize.js` for mobile-specific logic. All UI must be mobile-first.
 - **Data Fetching:** Sleeper API for player stats; Supabase for user data (profiles, favorites, drafts, contracts, bug_reports).
@@ -34,7 +34,10 @@ Fantasy draft application featuring real-time Sleeper API integration and Supaba
     src/constants/theme.js — DARK, LIGHT, AMOLED, PC (position colors), TIERS
     src/utils/players.js — buildPlayers, blendStats, calcIdpPoints, capSalaryValue, capSalaryValueDynasty
     src/utils/tank01.js — Tank01 NFL API helpers: getAdp, getNews, getByeWeeks, getPlayerInfo, getProjections (server-only, cached in api_cache)
-    src/utils/styleHelpers.js — style functions
+    src/utils/styleHelpers.js — style functions: tabBtn, posBtn, btn, smallBtn, slotBtn (all green-only; no indigo/amber)
+    src/components/ui/GlowCard.jsx — forwardRef <div> replacement with inset hover/active/focus glow; CSS via GlowCard.module.css
+    src/components/ui/GlowButton.jsx — green-only button primitive (primary/secondary variants); CSS via GlowButton.module.css
+    src/components/RankingsTab.module.css — .deck (command deck container) + .divider; uses --gi-* tokens
     src/hooks/useWindowSize.js — mobile detection
     src/hooks/useSupabaseUser.js — getSession + onAuthStateChange subscription; returns { user, session, loading, error }
     src/hooks/useUserSettings.js — user_settings load + upsert; returns { settings, setSettings, loading, saving, error, reload, save }
@@ -106,6 +109,9 @@ Fantasy draft application featuring real-time Sleeper API integration and Supaba
 - Sentry automatic error tracking with session replay (content masked)
 - Tank01 NFL API: ADP, news, bye weeks, player info, projections — cached in Supabase, auto-populate in-season
 - CSP + security headers on all routes
+- CSS design system: `--gi-*` token namespace in globals.css; `GlowCard` + `GlowButton` UI primitives in `src/components/ui/`; Rankings rows styled with GlowCard (inset glow hover/active, :active press scale, focus ring)
+- Floating command deck: two linked pills at maxWidth 680px — global deck (scoring + page tabs) in `draft/page.js`; Rankings sub-deck (mode toggle + search + filters) in `RankingsTab.jsx` + `RankingsTab.module.css`
+- Typography utilities in globals.css: `.gi-title` (green gradient fluid h1), `.gi-subtitle` (monospace label), `.gi-th` (table header); tokens `--gi-muted`, `--gi-dim`, `--gi-meta-size`, `--gi-title-size`, `--gi-subtitle-size`
 
 ## Static Weekly Stats Data
 - `public/data/weeklyStats_{year}.json` — pre-built per year, committed to repo, served as static assets by Vercel
