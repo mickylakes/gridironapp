@@ -1,7 +1,7 @@
 /* ── Command Deck — Rankings sub-controls ── */
 .deck {
-  max-width: 640px;
-  margin: 0 auto 20px;
+  max-width: 680px;
+  margin: 0 auto 14px;
   border-radius: 20px;
   padding: 12px;
   box-shadow:
@@ -26,7 +26,7 @@
 .divider {
   border: none;
   border-top: 1px solid; /* border-color supplied via inline style from C.border */
-  margin: 10px 0;
+  margin: 6px 0;
   opacity: 0.6;
 }
 

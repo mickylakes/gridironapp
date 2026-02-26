@@ -371,10 +371,10 @@ export default function Home() {
       <div style={{maxWidth:1280,margin:"0 auto",padding:isMobile?"72px 16px 32px":"32px 16px"}}>
 
         {/* Header */}
-        <div style={{textAlign:"center",marginBottom:32}}>
+        <div style={{textAlign:"center",marginBottom:12}}>
           <div style={{display:"inline-flex",alignItems:"center",gap:12,marginBottom:8}}>
-            <TrendingUp size={isMobile?24:40} color="#818cf8"/>
-            <h1 style={{fontSize:isMobile?32:52,fontWeight:900,margin:0,background:"linear-gradient(90deg,#818cf8,#c084fc,#f472b6)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",letterSpacing:"-0.05em"}}>GRID IRON</h1>
+            <TrendingUp size={isMobile?24:40} color="#10b981"/>
+            <h1 style={{fontSize:isMobile?32:52,fontWeight:900,margin:0,background:"linear-gradient(90deg,#10b981,#34d399,#10b981)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",letterSpacing:"-0.05em",textShadow:"0 0 18px rgba(16,185,129,0.20)"}}>GRID IRON</h1>
           </div>
           <p style={{color:C.textSec,fontFamily:"monospace",fontSize:isMobile?11:14,letterSpacing:"0.05em"}}>{new Date().getFullYear()} Fantasy Football Rankings</p>
           <div style={{display:"flex",justifyContent:"center",gap:8,marginTop:8,flexWrap:"wrap"}}>
@@ -392,9 +392,9 @@ export default function Home() {
         </div>
 
         {/* Command deck — scoring + page tabs */}
-        <div style={{display:"flex",justifyContent:"center",marginBottom:20,padding:isMobile?"0 12px":0}}>
+        <div style={{display:"flex",justifyContent:"center",marginBottom:12,padding:isMobile?"0 12px":0}}>
           <div style={{
-            width:isMobile?"100%":"auto",maxWidth:640,flex:isMobile?1:undefined,
+            width:isMobile?"100%":"auto",maxWidth:680,flex:isMobile?1:undefined,
             background:C.cardBg,border:"1px solid "+C.border,borderRadius:20,
             padding:isMobile?"12px":"16px",
             boxShadow:"0 0 0 1px rgba(16,185,129,0.10), 0 4px 24px rgba(0,0,0,0.25)",
@@ -418,7 +418,7 @@ export default function Home() {
             </div>
 
             {/* Divider */}
-            <hr style={{border:"none",borderTop:"1px solid "+C.border,margin:"10px 0",opacity:0.6}}/>
+            <hr style={{border:"none",borderTop:"1px solid "+C.border,margin:"6px 0",opacity:0.6}}/>
 
             {/* Row 2 — page tabs */}
             <div style={{display:"flex",gap:4}}>
