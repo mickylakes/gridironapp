@@ -10,6 +10,8 @@ import DraftBoard from "@/components/DraftBoard";
 import PlayerModal from "@/components/PlayerModal";
 import SettingsModal from "@/components/SettingsModal";
 import useWindowSize from "@/hooks/useWindowSize";
+import useSupabaseUser from "@/hooks/useSupabaseUser";
+import useUserSettings from "@/hooks/useUserSettings";
 import { createClient } from "@/lib/supabase";
 import AuthModal from "@/components/AuthModal";
 import { LogIn, LogOut } from "lucide-react";
@@ -36,7 +38,6 @@ export default function Home() {
   const [prevStatsData, setPrevStatsData] = useState({});
   const [projData, setProjData] = useState({});
   const [rawPlayers, setRawPlayers] = useState([]);
-  const [user, setUser] = useState(null);
   const [showAuth, setShowAuth] = useState(false);
   const [showBugReport, setShowBugReport] = useState(false);
 
@@ -62,6 +63,8 @@ export default function Home() {
   const [bidTeam, setBidTeam]       = useState(1);
 
   const { isMobile } = useWindowSize();
+  const { user } = useSupabaseUser();
+  const { settings, save: saveSettings } = useUserSettings(user);
   const C = theme === "dark" ? DARK : theme === "amoled" ? AMOLED : LIGHT;
   const totalPicks = draftTeams * draftRounds;
 
@@ -75,25 +78,21 @@ export default function Home() {
   const [playerInfoData, setPlayerInfoData] = useState([]);
   const [tank01Proj,     setTank01Proj]     = useState([]);
 
-  // FIX 1: Removed duplicate auth useEffect — single subscription only
-  useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-    return () => subscription.unsubscribe();
-  }, []);
-
   useEffect(() => {
     if (user) {
-      loadSettings();
       loadFavorites();
       loadDraft();
     }
   }, [user]);
+
+  // Sync DB settings → individual state vars (mirrors former loadSettings body exactly)
+  useEffect(() => {
+    if (settings.theme)       setTheme(settings.theme);
+    if (settings.scoring)     setScoring(settings.scoring);
+    if (settings.budget)      setBudget(settings.budget);
+    if (settings.num_teams)   setNumTeams(settings.num_teams);
+    if (settings.cap_ceiling) setCapCeiling(settings.cap_ceiling);
+  }, [settings]);
 
   // Fetch Tank01 data on mount (non-blocking, all parallel)
   useEffect(() => {
@@ -142,40 +141,7 @@ export default function Home() {
   async function handleSignOut() {
     const supabase = createClient();
     await supabase.auth.signOut();
-    setUser(null);
-  }
-
-  async function saveSettings(newSettings) {
-    if (!user) return;
-    const supabase = createClient();
-    try {
-      const { error } = await supabase.from("user_settings").upsert({
-        user_id: user.id,
-        ...newSettings,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: "user_id" });
-      if (error) console.error("saveSettings error:", error);
-    } catch (err) {
-      console.error("saveSettings exception:", err);
-    }
-  }
-
-  async function loadSettings() {
-    if (!user) return;
-    const supabase = createClient();
-    try {
-      const { data, error } = await supabase.from("user_settings").select("*").eq("user_id", user.id).single();
-      if (error && error.code !== "PGRST116") console.error("loadSettings error:", error);
-      if (data) {
-        if (data.theme) setTheme(data.theme);
-        if (data.scoring) setScoring(data.scoring);
-        if (data.budget) setBudget(data.budget);
-        if (data.num_teams) setNumTeams(data.num_teams);
-        if (data.cap_ceiling) setCapCeiling(data.cap_ceiling);
-      }
-    } catch (err) {
-      console.error("loadSettings exception:", err);
-    }
+    // user state is updated automatically by useSupabaseUser's onAuthStateChange subscription
   }
 
   async function loadFavorites() {
