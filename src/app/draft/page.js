@@ -13,6 +13,7 @@ import useWindowSize from "@/hooks/useWindowSize";
 import useSupabaseUser from "@/hooks/useSupabaseUser";
 import useUserSettings from "@/hooks/useUserSettings";
 import useDraftPersistence from "@/hooks/useDraftPersistence";
+import useFavorites from "@/hooks/useFavorites";
 import { createClient } from "@/lib/supabase";
 import AuthModal from "@/components/AuthModal";
 import { LogIn, LogOut } from "lucide-react";
@@ -26,7 +27,6 @@ export default function Home() {
   const [search, setSearch]       = useState("");
   const [rankType, setRankType]   = useState("redraft");
   const [apiStatus, setApiStatus] = useState({});
-  const [favorites, setFavorites] = useState(new Set());
   const [theme, setTheme]         = useState("dark");
   const [showFavs, setShowFavs]   = useState(false);
   const [selPlayer, setSelPlayer] = useState(null);
@@ -67,6 +67,7 @@ export default function Home() {
   const { user } = useSupabaseUser();
   const { settings, save: saveSettings } = useUserSettings(user);
   const { loadDraft: _loadDraft, saveDraft: _saveDraft } = useDraftPersistence(user);
+  const { favorites, loadFavorites, toggleFavorite: toggleFav } = useFavorites(user);
   const C = theme === "dark" ? DARK : theme === "amoled" ? AMOLED : LIGHT;
   const totalPicks = draftTeams * draftRounds;
 
@@ -146,18 +147,6 @@ export default function Home() {
     // user state is updated automatically by useSupabaseUser's onAuthStateChange subscription
   }
 
-  async function loadFavorites() {
-    if (!user) return;
-    const supabase = createClient();
-    try {
-      const { data, error } = await supabase.from("favorites").select("player_id").eq("user_id", user.id);
-      if (error) console.error("loadFavorites error:", error);
-      if (data) setFavorites(new Set(data.map(f => f.player_id)));
-    } catch (err) {
-      console.error("loadFavorites exception:", err);
-    }
-  }
-
   function saveDraft(currentPicks, currentBids) {
     return _saveDraft(currentPicks, currentBids, {
       draftType, draftTeams, draftRounds, yourSlot, teamNames, idpOn, auctBudget,
@@ -193,26 +182,6 @@ export default function Home() {
     const pos   = idx % draftTeams;
     const team  = (draftType === "snake" && round%2===0) ? (draftTeams-pos) : (pos+1);
     return {round, team};
-  }
-
-  // FIX 3: toggleFav now captures isFav before the optimistic state update
-  // so the Supabase delete/insert direction is always correct.
-  async function toggleFav(id) {
-    const isFav = favorites.has(id);
-    setFavorites(prev => { const n=new Set(prev); isFav ? n.delete(id) : n.add(id); return n; });
-    if (!user) return;
-    const supabase = createClient();
-    try {
-      if (isFav) {
-        const { error } = await supabase.from("favorites").delete().eq("user_id", user.id).eq("player_id", id);
-        if (error) console.error("toggleFav delete error:", error);
-      } else {
-        const { error } = await supabase.from("favorites").insert({ user_id: user.id, player_id: id });
-        if (error) console.error("toggleFav insert error:", error);
-      }
-    } catch (err) {
-      console.error("toggleFav exception:", err);
-    }
   }
 
   // FIX 4: Removed the broken setTimeout(saveDraft, auctBids) call.
