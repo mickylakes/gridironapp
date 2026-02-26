@@ -391,41 +391,50 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Scoring selector */}
-        <div style={{display:"flex",justifyContent:"center",marginBottom:16}}>
-          <div style={{display:"inline-flex",background:C.cardBg,border:"1px solid "+C.border,borderRadius:14,padding:4,gap:4}}>
-            {[
-              {key:"ppr",  label:"PPR"},
-              {key:"half", label:"Half PPR"},
-              {key:"std",  label:"Standard"},
-            ].map(s => (
-              <button key={s.key} onClick={() => {
-                setScoring(s.key);
-                setPlayers(buildPlayers(rawPlayers, budget, s.key, statsData, numTeams, prevStatsData, projData, adpData, byeData, playerInfoData, tank01Proj));
-                saveSettings({ theme, scoring: s.key, budget, num_teams: numTeams });
-              }}
-                style={{...tabBtn(scoring===s.key,"linear-gradient(135deg,#6366f1,#8b5cf6)",C), padding:isMobile?"8px 12px":"10px 28px", fontSize:isMobile?11:13}}>
-                {s.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        {/* Command deck — scoring + page tabs */}
+        <div style={{display:"flex",justifyContent:"center",marginBottom:20,padding:isMobile?"0 12px":0}}>
+          <div style={{
+            width:isMobile?"100%":"auto",maxWidth:640,flex:isMobile?1:undefined,
+            background:C.cardBg,border:"1px solid "+C.border,borderRadius:20,
+            padding:isMobile?"12px":"16px",
+            boxShadow:"0 0 0 1px rgba(16,185,129,0.10), 0 4px 24px rgba(0,0,0,0.25)",
+          }}>
+            {/* Row 1 — scoring */}
+            <div style={{display:"flex",gap:4,justifyContent:"center",marginBottom:0}}>
+              {[
+                {key:"ppr",  label:"PPR"},
+                {key:"half", label:"Half PPR"},
+                {key:"std",  label:"Standard"},
+              ].map(s => (
+                <button key={s.key} onClick={() => {
+                  setScoring(s.key);
+                  setPlayers(buildPlayers(rawPlayers, budget, s.key, statsData, numTeams, prevStatsData, projData, adpData, byeData, playerInfoData, tank01Proj));
+                  saveSettings({ theme, scoring: s.key, budget, num_teams: numTeams });
+                }}
+                  style={{...tabBtn(scoring===s.key,"linear-gradient(135deg,#10b981,#34d399)",C), padding:isMobile?"6px 10px":"8px 18px", fontSize:isMobile?11:12, flex:isMobile?1:undefined, justifyContent:"center"}}>
+                  {s.label}
+                </button>
+              ))}
+            </div>
 
-        {/* Tab bar */}
-        <div style={{display:"flex",justifyContent:"center",marginBottom:32,padding:isMobile?"0 12px":0}}>
-          <div style={{display:"flex",width:isMobile?"100%":"auto",background:C.cardBg,border:"1px solid "+C.border,borderRadius:14,padding:4}}>
-            <button onClick={() => setActiveTab("rankings")} style={{...tabBtn(activeTab==="rankings","linear-gradient(135deg,#6366f1,#8b5cf6)",C),flex:isMobile?1:undefined,justifyContent:"center",padding:isMobile?"8px 10px":"10px 28px",fontSize:isMobile?11:13}}>
-              <TrendingUp size={isMobile?13:15}/> {isMobile?"RANKS":"RANKINGS"}
-            </button>
-            <button onClick={() => setActiveTab("draftboard")} style={{...tabBtn(activeTab==="draftboard","linear-gradient(135deg,#10b981,#0d9488)",C),flex:isMobile?1:undefined,justifyContent:"center",padding:isMobile?"8px 10px":"10px 28px",fontSize:isMobile?11:13}}>
-              <ClipboardList size={isMobile?13:15}/> {isMobile?"DRAFT":"DRAFT BOARD"}
-              {draftStarted && draftType !== "auction" && (
-                <span style={{padding:"1px 7px",borderRadius:20,fontSize:11,background:"rgba(16,185,129,0.2)",color:"#34d399",border:"1px solid rgba(16,185,129,0.3)"}}>{pickIndex}/{totalPicks}</span>
-              )}
-            </button>
-            <button onClick={() => setActiveTab("capsheet")} style={{...tabBtn(activeTab==="capsheet","linear-gradient(135deg,#10b981,#0d9488)",C),flex:isMobile?1:undefined,justifyContent:"center",padding:isMobile?"8px 10px":"10px 28px",fontSize:isMobile?11:13}}>
-              <DollarSign size={isMobile?13:15}/> {isMobile?"CAP":"CAP SHEET"}
-            </button>
+            {/* Divider */}
+            <hr style={{border:"none",borderTop:"1px solid "+C.border,margin:"10px 0",opacity:0.6}}/>
+
+            {/* Row 2 — page tabs */}
+            <div style={{display:"flex",gap:4}}>
+              <button onClick={() => setActiveTab("rankings")} style={{...tabBtn(activeTab==="rankings","linear-gradient(135deg,#10b981,#34d399)",C),flex:1,justifyContent:"center",padding:isMobile?"8px 10px":"10px 20px",fontSize:isMobile?11:13}}>
+                <TrendingUp size={isMobile?13:15}/> {isMobile?"RANKS":"RANKINGS"}
+              </button>
+              <button onClick={() => setActiveTab("draftboard")} style={{...tabBtn(activeTab==="draftboard","linear-gradient(135deg,#10b981,#0d9488)",C),flex:1,justifyContent:"center",padding:isMobile?"8px 10px":"10px 20px",fontSize:isMobile?11:13}}>
+                <ClipboardList size={isMobile?13:15}/> {isMobile?"DRAFT":"DRAFT BOARD"}
+                {draftStarted && draftType !== "auction" && (
+                  <span style={{padding:"1px 7px",borderRadius:20,fontSize:11,background:"rgba(16,185,129,0.2)",color:"#34d399",border:"1px solid rgba(16,185,129,0.3)"}}>{pickIndex}/{totalPicks}</span>
+                )}
+              </button>
+              <button onClick={() => setActiveTab("capsheet")} style={{...tabBtn(activeTab==="capsheet","linear-gradient(135deg,#10b981,#0d9488)",C),flex:1,justifyContent:"center",padding:isMobile?"8px 10px":"10px 20px",fontSize:isMobile?11:13}}>
+                <DollarSign size={isMobile?13:15}/> {isMobile?"CAP":"CAP SHEET"}
+              </button>
+            </div>
           </div>
         </div>
 

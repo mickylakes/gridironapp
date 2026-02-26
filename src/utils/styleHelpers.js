@@ -28,7 +28,7 @@ export function tabBtn(active, activeGrad, C) {
     gap: 6,
     background: sel(active, activeGrad, "transparent"),
     color: sel(active, "#fff", C.textSec),
-    boxShadow: sel(active, "0 4px 12px rgba(99,102,241,0.4)", "none"),
+    boxShadow: sel(active, "0 4px 12px rgba(16,185,129,0.35)", "none"),
   };
 }
 
@@ -41,7 +41,7 @@ export function posBtn(active, pos, C) {
     cursor: "pointer",
     fontWeight: 700,
     fontSize: 12,
-    background: sel(active, pos === "ALL" ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : pc(pos), C.btnBg),
+    background: sel(active, pos === "ALL" ? "linear-gradient(135deg,#10b981,#34d399)" : pc(pos), C.btnBg),
     color: sel(active, "#fff", C.textSec),
   };
 }

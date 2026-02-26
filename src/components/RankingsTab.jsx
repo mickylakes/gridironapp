@@ -6,6 +6,7 @@ import { tabBtn, posBtn } from "@/utils/styleHelpers";
 import useWindowSize from "@/hooks/useWindowSize";
 import { capSalaryValue, capSalaryValueDynasty } from "@/utils/players";
 import GlowCard from "@/components/ui/GlowCard";
+import styles from "./RankingsTab.module.css";
 
 function timeAgo(dateStr) {
   if (!dateStr) return "";
@@ -67,42 +68,51 @@ export default function RankingsTab({
 
   return (
     <div>
-      {/* Redraft / Dynasty toggle */}
-      <div style={{display:"flex",justifyContent:"center",marginBottom:16}}>
-        <div style={{display:"inline-flex",background:C.cardBg,border:"1px solid "+C.border,borderRadius:14,padding:4}}>
-          <button onClick={() => setRankType("redraft")} style={{...tabBtn(rankType==="redraft","linear-gradient(135deg,#10b981,#0d9488)",C),boxShadow:rankType==="redraft"?"0 4px 12px rgba(16,185,129,0.35)":undefined}}>
-            <Zap size={14}/> REDRAFT
-          </button>
-          <button onClick={() => setRankType("dynasty")} style={{...tabBtn(rankType==="dynasty","linear-gradient(135deg,#10b981,#0d9488)",C),boxShadow:rankType==="dynasty"?"0 4px 12px rgba(16,185,129,0.35)":undefined}}>
-            <Clock size={14}/> DYNASTY
+      {/* Command deck — mode toggle, search, position filters */}
+      <div className={styles.deck} style={{background:C.cardBg,border:"1px solid "+C.border}}>
+
+        {/* Redraft / Dynasty toggle */}
+        <div style={{display:"flex",justifyContent:"center"}}>
+          <div style={{display:"inline-flex",background:"transparent",borderRadius:10,gap:4}}>
+            <button onClick={() => setRankType("redraft")} style={{...tabBtn(rankType==="redraft","linear-gradient(135deg,#10b981,#0d9488)",C),padding:isMobile?"8px 16px":"10px 24px",fontSize:isMobile?11:13}}>
+              <Zap size={14}/> REDRAFT
+            </button>
+            <button onClick={() => setRankType("dynasty")} style={{...tabBtn(rankType==="dynasty","linear-gradient(135deg,#10b981,#0d9488)",C),padding:isMobile?"8px 16px":"10px 24px",fontSize:isMobile?11:13}}>
+              <Clock size={14}/> DYNASTY
+            </button>
+          </div>
+        </div>
+
+        <hr className={styles.divider} style={{borderColor:C.border}}/>
+
+        {/* Search + favorites */}
+        <div style={{display:"flex",gap:8,width:"100%"}}>
+          <div style={{position:"relative",flex:1}}>
+            <Search size={16} style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",color:C.textSec}}/>
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search players or teams..."
+              style={{width:"100%",paddingLeft:40,paddingRight:12,paddingTop:10,paddingBottom:10,borderRadius:12,border:"1px solid "+C.border,background:C.inputBg,color:C.textPri,outline:"none",fontSize:14,boxSizing:"border-box"}}
+            />
+          </div>
+          <button
+            onClick={() => setShowFavs(!showFavs)}
+            style={{padding:"10px 18px",borderRadius:12,border:showFavs?"none":"1px solid "+C.border,cursor:"pointer",fontWeight:700,fontSize:13,display:"flex",alignItems:"center",gap:6,background:showFavs?"linear-gradient(135deg,#10b981,#34d399)":C.btnBg,color:showFavs?"#fff":C.textSec}}
+          >
+            <Star size={14} fill={showFavs?"#fff":"none"}/> {showFavs?"ALL":"FAVS"}
           </button>
         </div>
-      </div>
 
-      {/* Search + favorites */}
-      <div style={{display:"flex",gap:8,maxWidth:600,margin:"0 auto 16px",width:"100%"}}>
-        <div style={{position:"relative",flex:1}}>
-          <Search size={16} style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",color:C.textSec}}/>
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search players or teams..."
-            style={{width:"100%",paddingLeft:40,paddingRight:12,paddingTop:10,paddingBottom:10,borderRadius:12,border:"1px solid "+C.border,background:C.inputBg,color:C.textPri,outline:"none",fontSize:14,boxSizing:"border-box"}}
-          />
+        <hr className={styles.divider} style={{borderColor:C.border}}/>
+
+        {/* Position filters */}
+        <div style={{display:"flex",flexWrap:"wrap",gap:6,justifyContent:"center"}}>
+          {POSITIONS.map(pos => (
+            <button key={pos} onClick={() => setSelPos(pos)} style={posBtn(selPos===pos, pos, C)}>{pos}</button>
+          ))}
         </div>
-        <button
-          onClick={() => setShowFavs(!showFavs)}
-          style={{padding:"10px 18px",borderRadius:12,border:showFavs?"none":"1px solid "+C.border,cursor:"pointer",fontWeight:700,fontSize:13,display:"flex",alignItems:"center",gap:6,background:showFavs?"linear-gradient(135deg,#f59e0b,#d97706)":C.btnBg,color:showFavs?"#fff":C.textSec}}
-        >
-          <Star size={14} fill={showFavs?"#fff":"none"}/> {showFavs?"ALL":"FAVS"}
-        </button>
-      </div>
 
-      {/* Position filters */}
-      <div style={{display:"flex",flexWrap:"wrap",gap:6,justifyContent:"center",marginBottom:20}}>
-        {POSITIONS.map(pos => (
-          <button key={pos} onClick={() => setSelPos(pos)} style={posBtn(selPos===pos, pos, C)}>{pos}</button>
-        ))}
       </div>
 
       {/* Cap ceiling context hint — desktop only */}
